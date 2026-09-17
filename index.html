@@ -1,6 +1,9 @@
 
+
+
+
 <!DOCTYPE html>
-<html lang="de"
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -385,7 +388,7 @@
         <!-- LIVE-KOMMENTARFELD DIREKT DARUNTER -->
         <div class="form-group live-note-box">
             <label for="step-note-text" style="color: #1e40af; font-weight: bold;" data-i18n="lblLiveNote">💬 Kommentar / Warte-Hinweis für diesen Punkt (Live im Büro):</label>
-            <input type="text" id="step-note-text" placeholder="z. B. 'Warte auf Kran', 'Teil wird geholt'..." oninput="saveCurrentNoteLive()">
+            <input type="text" id="step-note-text" placeholder="z. B. 'Warte auf Kran', 'Teil wird geholt', 'Wartet auf Freigabe'..." oninput="saveCurrentNoteLive()">
         </div>
 
         <div id="remark-container" class="form-group" style="display: none;">
@@ -510,6 +513,7 @@
 </script>
 
 <script>
+    // --- DICTIONARY FÜR DEUTSCH & FRANZÖSISCH ---
     let currentLang = 'de';
 
     const translations = {
@@ -604,7 +608,7 @@
             lblInspector: "👤 Contrôle final effectué par",
             lblDate: "📅 Date",
             btnPrint: "🖨️ Imprimer / PDF",
-            btnMail: "Envoyer par e-mail",
+            btnMail: "✉️ Envoyer par e-mail",
             btnSaveArchive: "Enregistrer & Archiver 💾",
             archiveTitle: "📜 Procès-verbaux archivés",
             archiveDetailTitle: "Détails du procès-verbal",
@@ -617,75 +621,60 @@
         }
     };
 
-    // ALLES MIT EINER EINDEUTIGEN ID FÜR DYNAMISCHE UMBENENNUNG
     const masterChecklistGrouped = [
         {
-            groupId: "bg1",
             groupName: { de: "Baugruppe 1: Basismontage", fr: "Groupe 1: Montage de base" },
             items: [
-                { id: "bg1_1", de: "Zwischenlager montiert", fr: "Palier intermédiaire monté" },
-                { id: "bg1_2", de: "Zwischenlager geprüft", fr: "Palier intermédiaire contrôlé" },
-                { id: "bg1_3", de: "Flanschlager festgezogen", fr: "Palier à bride serré" },
-                { id: "bg1_4", de: "Madenschrauben an Flanschlager festgezogen", fr: "Vis sans tête du palier à bride serrées" },
-                { id: "bg1_5", de: "Gleitlagerkopf angezogen", fr: "Tête de palier lisse serrée" },
-                { id: "bg1_6", de: "Schmierleitung festgezogen", fr: "Conduite de graissage serrée" },
-                { id: "bg1_7", de: "Öl eingesetzt / aufgefüllt", fr: "Huile ajoutée / remplie" }
+                { de: "Zwischenlager montiert", fr: "Paliermédiaire monté" },
+                { de: "Zwischenlager geprüft", fr: "Paliermédiaire contrôlé" },
+                { de: "Flanschlager festgezogen", fr: "Palier à bride serré" },
+                { de: "Madenschrauben an Flanschlager festgezogen", fr: "Vis sans tête du palier à bride serrées" },
+                { de: "Gleitlagerkopf angezogen", fr: "Tête de palier lisse serrée" },
+                { de: "Schmierleitung festgezogen", fr: "Conduite de graissage serrée" },
+                { de: "Öl eingesetzt / aufgefüllt", fr: "Huile ajoutée / remplie" }
             ]
         },
         {
-            groupId: "bg2",
             groupName: { de: "Baugruppe 2: Flügel, Ring & Gummis", fr: "Groupe 2: Pales, Anneau & Caoutchoucs" },
             items: [
-                { id: "bg2_1", de: "Ring montiert", fr: "Anneau monté" },
-                { id: "bg2_2", de: "Flügel montiert", fr: "Pales montées" },
-                { id: "bg2_3", de: "Flügel mit Kiloschlüssel festgezogen", fr: "Pales serrées à la clé dynamométrique" },
-                { id: "bg2_4", de: "Ring exakt ausgerichtet", fr: "Anneau parfaitement aligné" },
-                { id: "bg2_5", de: "Gummis montiert", fr: "Caoutchoucs montés" }
+                { de: "Ring montiert", fr: "Anneau monté" },
+                { de: "Flügel montiert", fr: "Pales montées" },
+                { de: "Flügel mit Kiloschlüssel festgezogen", fr: "Pales serrées à la clé dynamométrique" },
+                { de: "Ring exakt ausgerichtet", fr: "Anneau parfaitement aligné" },
+                { de: "Gummis montiert", fr: "Caoutchoucs montés" }
             ]
         },
         {
-            groupId: "bg3",
             groupName: { de: "Baugruppe 3: Antrieb & Motorkiste", fr: "Groupe 3: Entraînement & Caisson moteur" },
             items: [
-                { id: "bg3_1", de: "Motorkiste montiert & festgezogen", fr: "Caisson moteur monté et serré" },
-                { id: "bg3_2", de: "Motor montiert & festgezogen", fr: "Moteur monté et serré" },
-                { id: "bg3_3", de: "Keilriemen auf Spannung & Sitz geprüft", fr: "Tension et assise de la courroie contrôlées" },
-                { id: "bg3_4", de: "Riemenscheiben festgezogen", fr: "Poulies serrées" }
+                { de: "Motorkiste montiert & festgezogen", fr: "Caisson moteur monté et serré" },
+                { de: "Motor montiert & festgezogen", fr: "Moteur monté et serré" },
+                { de: "Keilriemen auf Spannung & Sitz geprüft", fr: "Tension et assise de la courroie contrôlées" },
+                { de: "Riemenscheiben festgezogen", fr: "Poulies serrées" }
             ]
         },
         {
-            groupId: "bg4",
             groupName: { de: "Baugruppe 4: Elektrik & Testlauf", fr: "Groupe 4: Électricité & Test de fonctionnement" },
             items: [
-                { id: "bg4_1", de: "Schaltkasten auf Funktion getestet", fr: "Armoire électrique testée" },
-                { id: "bg4_2", de: "Kabel & Anschlüsse geprüft", fr: "Câbles et raccordements contrôlés" },
-                { id: "bg4_3", de: "Maschinen-Testlauf durchgeführt", fr: "Essai de fonctionnement effectué" }
+                { de: "Schaltkasten auf Funktion getestet", fr: "Armoire électrique testée" },
+                { de: "Kabel & Anschlüsse geprüft", fr: "Câbles et raccordements contrôlés" },
+                { de: "Maschinen-Testlauf durchgeführt", fr: "Essai de fonctionnement de la machine effectué" }
             ]
         },
         {
-            groupId: "bg5",
             groupName: { de: "Baugruppe 5: Zubehör, Verpackung & Optik", fr: "Groupe 5: Accessoires, Emballage & Esthétique" },
             items: [
-                { id: "bg5_1", de: "Hauben montiert & festgezogen", fr: "Capots montés et serrés" },
-                { id: "bg5_2", de: "Spanner verpackt / beigelegt", fr: "Tendeurs emballés / joints" },
-                { id: "bg5_3", de: "Deckelsatz-System verpackt", fr: "Jeu de couvercles emballé" },
-                { id: "bg5_4", de: "Schrauben für Deckelsatz beigelegt", fr: "Vis pour jeu de couvercles jointes" },
-                { id: "bg5_5", de: "Typenschild geklebt", fr: "Plaque signalétique collée" },
-                { id: "bg5_6", de: "Optische Sauberkeit der Maschine geprüft", fr: "Propreté visuelle de la machine contrôlée" },
-                { id: "bg5_7", de: "Alle erforderlichen Aufkleber vorhanden & korrekt angebracht", fr: "Autocollants requis présents et bien posés" },
-                { id: "bg5_8", de: "Maschine komplett eingepackt inkl. Flügel", fr: "Machine entièrement emballée, pales incluses" }
+                { de: "Hauben montiert & festgezogen", fr: "Capots montés et serrés" },
+                { de: "Spanner verpackt / beigelegt", fr: "Tendeurs emballés / joints" },
+                { de: "Deckelsatz-System verpackt", fr: "Jeu de couvercles emballé" },
+                { de: "Schrauben für Deckelsatz beigelegt", fr: "Vis pour jeu de couvercles jointes" },
+                { de: "Typenschild geklebt", fr: "Plaque signalétique collée" },
+                { de: "Optische Sauberkeit der Maschine geprüft", fr: "Propreté visuelle de la machine contrôlée" },
+                { de: "Alle erforderlichen Aufkleber vorhanden & korrekt angebracht", fr: "Autocollants requis présents et bien posés" },
+                { de: "Maschine komplett eingepackt inkl. Flügel", fr: "Machine entièrement emballée, pales incluses" }
             ]
         }
     ];
-
-    // Hilfsfunktion zum Abrufen des übersetzten Textes einer Prüfpunkt-ID
-    function getItemText(itemId) {
-        for (const group of masterChecklistGrouped) {
-            const found = group.items.find(i => i.id === itemId);
-            if (found) return found[currentLang] || found.de;
-        }
-        return itemId; // Fallback
-    }
 
     window.orders = [];
     window.archive = [];
@@ -715,18 +704,9 @@
         renderChecklistSelection();
         renderOrders();
         renderOfficeLive();
-        
-        const activeScreen = document.querySelector('.screen.active');
-        if (activeScreen && activeScreen.id === 'screen-inspection') {
-            updateStepView();
-        } else if (activeScreen && activeScreen.id === 'screen-final') {
-            renderFinalScreen();
-        } else if (activeScreen && activeScreen.id === 'screen-archive-detail' && selectedArchiveItem) {
-            viewArchiveDetail(selectedArchiveItem.id);
-        }
     }
 
-    // --- QR SCANNER ---
+    // --- QR SCANNER LOGIK ---
     function openScanner() {
         goToScreen('screen-scanner');
         html5QrCode = new Html5Qrcode("qr-reader");
@@ -734,6 +714,7 @@
         
         html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
             .catch(err => {
+                console.error("Kamera Fehler:", err);
                 alert("Kamera konnte nicht geöffnet werden.");
                 goToScreen('screen-home');
             });
@@ -755,6 +736,7 @@
             html5QrCode.stop().then(() => html5QrCode.clear());
         }
 
+        // Parsing des QR-Codes (Trennzeichen Semikolon ODER Link-Parameter)
         let nr = "", typ = "", sn = "", rohr = "", achse = "", kw = "";
 
         if (decodedText.includes('?')) {
@@ -812,13 +794,6 @@
 
     function renderChecklistSelection() {
         const container = document.getElementById('checklist-selection-container');
-        
-        // Bereits ausgewählte Checkboxen merken
-        const checkedMap = {};
-        document.querySelectorAll('.single-check-item').forEach(cb => {
-            checkedMap[cb.value] = cb.checked;
-        });
-
         container.innerHTML = '';
 
         masterChecklistGrouped.forEach(group => {
@@ -829,12 +804,10 @@
 
             group.items.forEach(itemObj => {
                 const itemText = itemObj[currentLang] || itemObj.de;
-                const isChecked = checkedMap[itemObj.id] !== undefined ? checkedMap[itemObj.id] : true;
-
                 const label = document.createElement('label');
                 label.className = 'checkbox-group';
                 label.innerHTML = `
-                    <input type="checkbox" class="single-check-item" value="${itemObj.id}" ${isChecked ? 'checked' : ''}>
+                    <input type="checkbox" class="single-check-item" data-text="${itemText}" checked>
                     <div>${itemText}</div>
                 `;
                 container.appendChild(label);
@@ -867,12 +840,12 @@
             return;
         }
 
-        const selectedItemIds = [];
+        const selectedItems = [];
         document.querySelectorAll('.single-check-item:checked').forEach(cb => {
-            selectedItemIds.push(cb.value);
+            selectedItems.push(cb.getAttribute('data-text'));
         });
 
-        if (selectedItemIds.length === 0) {
+        if (selectedItems.length === 0) {
             alert(currentLang === 'fr' ? "Veuillez sélectionner au moins un point de contrôle." : "Bitte mindestens einen Prüfpunkt auswählen.");
             return;
         }
@@ -886,7 +859,7 @@
             axis: document.getElementById('order-axis').value.trim() || '-',
             kw: document.getElementById('order-kw').value.trim() || '-',
             comment: document.getElementById('order-comment').value.trim() || '',
-            selectedItems: selectedItemIds, // speichert jetzt die eindeutigen IDs!
+            selectedItems: selectedItems,
             status: 'OFFEN',
             currentStep: 0,
             inspectionResults: [],
@@ -1009,13 +982,13 @@
                     <div style="margin-top: 10px; padding: 8px 12px; background-color: #fef2f2; border-left: 4px solid var(--red); border-radius: 4px; font-size: 0.85rem;">
                         <strong style="color: var(--red);">${currentLang === 'fr' ? '⚠️ Défauts enregistrés (Atelier) :' : '⚠️ Erfasste Mängel (Werkstatt):'}</strong>
                         <ul style="margin: 4px 0 0 18px; color: #991b1b;">
-                            ${nokItems.map(item => `<li><b>${getItemText(item.itemId \vert{}\vert{} item.item)}:</b>${item.remark}</li>`).join('')}
+                            ${nokItems.map(item => `<li><b>${item.item}:</b>${item.remark}</li>`).join('')}
                         </ul>
                     </div>
                 `;
             }
 
-            let currentPointName = (o.selectedItems && o.selectedItems[current]) ? getItemText(o.selectedItems[current]) : '-';
+            let currentPointName = (o.selectedItems && o.selectedItems[current]) ? o.selectedItems[current] : '-';
             let liveStatusHtml = '';
             if (current < total) {
                 liveStatusHtml = `
@@ -1110,11 +1083,7 @@
             const prefix = translations[currentLang].checkStepPrefix;
             const ofWord = translations[currentLang].checkStepOf;
             document.getElementById('check-step').innerText = `${prefix} ${currentStep + 1} ${ofWord} ${total}`;
-            
-            // DYNAMISCH ÜBERSETZT ÜBER DIE ID
-            const currentItemId = activeChecklist[currentStep];
-            document.getElementById('check-text').innerText = getItemText(currentItemId);
-
+            document.getElementById('check-text').innerText = activeChecklist[currentStep];
             document.getElementById('remark-container').style.display = 'none';
             document.getElementById('main-actions').style.display = 'flex';
             document.getElementById('remark-text').value = '';
@@ -1141,7 +1110,7 @@
 
         if (isOk) {
             inspectionResults[currentStep] = { 
-                itemId: activeChecklist[currentStep], 
+                item: activeChecklist[currentStep], 
                 status: 'OK', 
                 remark: '',
                 note: note
@@ -1170,7 +1139,7 @@
         }
 
         inspectionResults[currentStep] = { 
-            itemId: activeChecklist[currentStep], 
+            item: activeChecklist[currentStep], 
             status: 'NOK', 
             remark: remark,
             note: note
@@ -1254,12 +1223,10 @@
             itemDiv.className = `result-item ${statusClass}`;
             
             let statusText = r.status;
-            if (r.status === 'KORRIGIERT') statusText = currentLang === 'fr' ? '🟢 CORRIGÉ (OK)' : '🟢 KORRIGIERT (OK)';
-
-            const itemTitle = getItemText(r.itemId || r.item);
+            if (r.status === 'KORRIGIERT') statusText = '🟢 KORRIGIERT / CORRIGÉ (OK)';
 
             itemDiv.innerHTML = `
-                <div><strong>${idx + 1}. ${itemTitle}</strong> - <span>${statusText}</span></div>
+                <div><strong>${idx + 1}. ${r.item}</strong> - <span>${statusText}</span></div>
                 ${r.note ? `<small style="color: var(--primary); margin-top: 2px;">💬 ${r.note}</small>` : ''}
                 ${r.remark ? `<small style="color: var(--red); margin-top: 3px;">⚠️ ${r.remark}</small>` : ''}
                 ${r.fixNote ? `<small style="color: var(--green); margin-top: 3px;">✅ ${r.fixNote}</small>` : ''}
@@ -1446,7 +1413,7 @@
             <b>Spec:</b> Tube ${selectedArchiveItem.pipe} | Axe: ${selectedArchiveItem.axis} | Moteur: ${selectedArchiveItem.kw}<br>
             ${selectedArchiveItem.comment ? `<b>Note:</b> ${selectedArchiveItem.comment}<br>` : ''}
             <hr style="margin: 8px 0; border: 0.5px solid var(--border-color);">
-            <b>Monteur:</b> ${selectedArchiveItem.worker} | <b>Contrôleur:</b> ${selectedArchiveItem.inspector}<br>
+            <b>Employé/Monteur:</b> ${selectedArchiveItem.worker} | <b>Contrôleur:</b> ${selectedArchiveItem.inspector}<br>
             <b>Date:</b> ${selectedArchiveItem.date}<br>
             <b>Taux:</b> ${rate}% OK (${selectedArchiveItem.okCount || '-'} / ${selectedArchiveItem.totalCount || '-'} OK)
             <div class="progress-bar-container" style="height: 6px; margin-top: 6px;">
@@ -1455,7 +1422,7 @@
         `;
 
         const resultsContainer = document.getElementById('archive-detail-results');
-        resultsContainer.innerHTML = `4. ${currentLang === 'fr' ? 'Points de contrôle :' : 'Prüfpunkte:'}`;
+        resultsContainer.innerHTML = '<h4>Points de contrôle / Prüfpunkte:</h4>';
 
         selectedArchiveItem.results.forEach((r, idx) => {
             const itemDiv = document.createElement('div');
@@ -1463,12 +1430,10 @@
             itemDiv.className = `result-item ${statusClass}`;
 
             let statusText = r.status;
-            if (r.status === 'KORRIGIERT') statusText = currentLang === 'fr' ? '🟢 CORRIGÉ (OK)' : '🟢 KORRIGIERT (OK)';
-
-            const itemTitle = getItemText(r.itemId || r.item);
+            if (r.status === 'KORRIGIERT') statusText = '🟢 KORRIGIERT / CORRIGÉ (OK)';
 
             itemDiv.innerHTML = `
-                <div><strong>${idx + 1}. ${itemTitle}</strong> - <span>${statusText}</span></div>
+                <div><strong>${idx + 1}. ${r.item}</strong> - <span>${statusText}</span></div>
                 ${r.note ? `<small style="color: var(--primary); margin-top: 2px;">💬 ${r.note}</small>` : ''}
                 ${r.remark ? `<small style="color: var(--red); margin-top: 3px;">⚠️ ${r.remark}</small>` : ''}
                 ${r.fixNote ? `<small style="color: var(--green); margin-top: 3px;">✅ ${r.fixNote}</small>` : ''}
@@ -1542,8 +1507,7 @@
 
         results.forEach((r, i) => {
             if (!r) return;
-            const itemTitle = getItemText(r.itemId || r.item);
-            let line = `${i+1}. ${itemTitle}: ${r.status}`;
+            let line = `${i+1}. ${r.item}: ${r.status}`;
             if (r.note) line += ` (Note: ${r.note})`;
             if (r.remark) line += ` (Défaut: ${r.remark})`;
             if (r.fixNote) line += ` [Correction: ${r.fixNote}]`;
