@@ -1,12 +1,12 @@
 
-
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digitale Maschinenprüfung - Kontrollliste</title>
+    <!-- QR Scanner Bibliothek (Html5Qrcode) -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         :root {
             --bg-color: #f4f6f8;
@@ -55,11 +55,33 @@
             border-bottom: 2px solid var(--border-color);
             padding-bottom: 15px;
             margin-bottom: 20px;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        h1 { font-size: 1.5rem; }
+        h1 { font-size: 1.3rem; }
         h2 { font-size: 1.2rem; margin-bottom: 10px; }
+
+        .lang-switch {
+            display: flex;
+            gap: 4px;
+        }
+
+        .lang-btn {
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .lang-btn.active {
+            background: var(--primary);
+            color: white;
+        }
 
         .screen {
             display: none;
@@ -229,10 +251,17 @@
         .result-item.fixed { background-color: #fef3c7; border-left: 4px solid var(--yellow); }
         .result-item.nok { background-color: #fef2f2; border-left: 4px solid var(--red); }
 
+        #qr-reader {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px dashed var(--primary);
+        }
+
         @media print {
             body { background: white; padding: 0; }
             .app-container { box-shadow: none; border: none; max-width: 100%; width: 100%; }
-            header, .btn, input, select, textarea, .progress-bar-container, .action-buttons, .btn-fix, .btn-outline-red { display: none !important; }
+            header, .btn, input, select, textarea, .progress-bar-container, .action-buttons, .btn-fix, .btn-outline-red, .lang-switch { display: none !important; }
             .screen { display: none !important; }
             #screen-archive-detail.active, #screen-final.active { display: block !important; }
         }
@@ -242,81 +271,95 @@
 
 <div class="app-container">
     <header>
-        <h1>📋 Maschinenprüfung Kontrollliste</h1>
+        <h1 data-i18n="appTitle">📋 Maschinenprüfung Kontrollliste</h1>
+        <div class="lang-switch">
+            <button class="lang-btn active" id="btn-de" onclick="setLanguage('de')">🇩🇪 DE</button>
+            <button class="lang-btn" id="btn-fr" onclick="setLanguage('fr')">🇫🇷 FR</button>
+        </div>
     </header>
 
     <!-- 1. HAUPTMENÜ -->
     <div id="screen-home" class="screen active">
-        <button class="btn" onclick="goToScreen('screen-new-order')">➕ Prüfauftrag anlegen / ERP Daten eingeben</button>
-        <button class="btn btn-green" onclick="goToScreen('screen-orders')">🛠️ Werkstatt / Offene Prüfungen</button>
-        <button class="btn btn-outline" onclick="goToScreen('screen-office-live')">🖥️ Büro / Live Dashboard (Nur Lesen)</button>
-        <button class="btn btn-secondary" onclick="goToScreen('screen-archive')">📜 Archiv / Abgeschlossene Protokolle</button>
+        <button class="btn btn-outline" style="background-color: #eff6ff;" onclick="openScanner()">📷 <span data-i18n="btnScanQr">QR-Code scannen (Etikett)</span></button>
+        <button class="btn" onclick="goToScreen('screen-new-order')">➕ <span data-i18n="btnNewOrder">Prüfauftrag anlegen / ERP Daten eingeben</span></button>
+        <button class="btn btn-green" onclick="goToScreen('screen-orders')">🛠️ <span data-i18n="btnWorkshop">Werkstatt / Offene Prüfungen</span></button>
+        <button class="btn btn-outline" onclick="goToScreen('screen-office-live')">🖥️ <span data-i18n="btnOfficeLive">Büro / Live Dashboard (Nur Lesen)</span></button>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-archive')">📜 <span data-i18n="btnArchive">Archiv / Abgeschlossene Protokolle</span></button>
+    </div>
+
+    <!-- SCANNER MODAL / SCREEN -->
+    <div id="screen-scanner" class="screen">
+        <h2 data-i18n="scanTitle">📷 Etikett mit QR-Code scannen</h2>
+        <div id="qr-reader"></div>
+        <p style="font-size: 0.85rem; color: var(--gray); text-align: center;" data-i18n="scanHint">Halte die Kamera über den QR-Code des Maschinen-Etiketts.</p>
+        <button class="btn btn-secondary" onclick="closeScanner()" data-i18n="btnCancel">Abbrechen</button>
     </div>
 
     <!-- BÜRO LIVE-DASHBOARD -->
     <div id="screen-office-live" class="screen">
-        <h2>🖥️ Büro Live-Dashboard (Echtzeit-Monitoren)</h2>
-        <p style="font-size: 0.85rem; color: var(--gray);">Hier wird der Live-Fortschritt & Wartezustände der Werkstatt automatisch aktualisiert.</p>
+        <h2>🖥️ <span data-i18n="officeTitle">Büro Live-Dashboard (Echtzeit-Monitoren)</span></h2>
+        <p style="font-size: 0.85rem; color: var(--gray);" data-i18n="officeSub">Hier wird der Live-Fortschritt & Wartezustände der Werkstatt automatisch aktualisiert.</p>
         <div id="office-live-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
-        <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;">Zurück zum Hauptmenü</button>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;" data-i18n="btnBackHome">Zurück zum Hauptmenü</button>
     </div>
 
     <!-- 2. AUFTRAG ANLEGEN -->
     <div id="screen-new-order" class="screen">
-        <h2>ERP-Daten & Spezifikationen eingeben</h2>
+        <h2 data-i18n="newOrderTitle">ERP-Daten & Spezifikationen eingeben</h2>
+        <button class="btn btn-outline" style="padding: 8px; font-size: 0.9rem;" onclick="openScanner()">📷 <span data-i18n="btnScanQrShort">QR-Code scannen</span></button>
         
         <div class="form-group">
-            <label for="order-no">📌 Auftragsnummer</label>
+            <label for="order-no" data-i18n="lblOrderNo">📌 Auftragsnummer</label>
             <input type="text" id="order-no" placeholder="z. B. 104523">
         </div>
         <div class="form-group">
-            <label for="order-type">Maschinentyp / Modell</label>
+            <label for="order-type" data-i18n="lblType">Maschinentyp / Modell</label>
             <input type="text" id="order-type" placeholder="z. B. SLE">
         </div>
         <div class="form-group">
-            <label for="order-serial">Seriennummer</label>
+            <label for="order-serial" data-i18n="lblSerial">Seriennummer</label>
             <input type="text" id="order-serial" placeholder="z. B. SLE0001">
         </div>
 
         <div class="form-group">
-            <label for="order-pipe">Rohrlänge (Händische Eingabe)</label>
+            <label for="order-pipe" data-i18n="lblPipe">Rohrlänge (Händische Eingabe)</label>
             <input type="text" id="order-pipe" placeholder="z. B. 435 cm oder 4,25 m">
         </div>
         <div class="form-group">
-            <label for="order-axis">Achse / Spezifikation</label>
+            <label for="order-axis" data-i18n="lblAxis">Achse / Spezifikation</label>
             <input type="text" id="order-axis" placeholder="z. B. Achse Typ A-400">
         </div>
         <div class="form-group">
-            <label for="order-kw">Motor-Leistung / Typ</label>
+            <label for="order-kw" data-i18n="lblMotor">Motor-Leistung / Typ</label>
             <input type="text" id="order-kw" placeholder="z. B. 5.5 kW">
         </div>
 
         <div class="form-group">
-            <label for="order-comment">💬 Besondere Hinweise / Kommentar für Werkstatt</label>
+            <label for="order-comment" data-i18n="lblComment">💬 Besondere Hinweise / Kommentar für Werkstatt</label>
             <textarea id="order-comment" rows="2" placeholder="z. B. Sonderausstattung beachten..."></textarea>
         </div>
 
         <hr style="border: 0.5px solid var(--border-color); margin: 5px 0;">
         
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label><b>Prüfpunkte individuell auswählen:</b></label>
+            <label><b data-i18n="lblSelectItems">Prüfpunkte individuell auswählen:</b></label>
             <div style="display: flex; gap: 5px;">
-                <button type="button" class="btn-outline" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 4px;" onclick="toggleAllCheckboxes(true)">Alle an</button>
-                <button type="button" class="btn-outline" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; color: var(--red); border-color: var(--red);" onclick="toggleAllCheckboxes(false)">Alle aus</button>
+                <button type="button" class="btn-outline" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 4px;" onclick="toggleAllCheckboxes(true)" data-i18n="btnAllOn">Alle an</button>
+                <button type="button" class="btn-outline" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; color: var(--red); border-color: var(--red);" onclick="toggleAllCheckboxes(false)" data-i18n="btnAllOff">Alle aus</button>
             </div>
         </div>
 
         <div id="checklist-selection-container" style="max-height: 300px; overflow-y: auto; padding-right: 5px; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: #fafafa;"></div>
 
-        <button class="btn btn-green" onclick="createOrder()">Prüfauftrag für Werkstatt freigeben ▶</button>
-        <button class="btn btn-secondary" onclick="goToScreen('screen-home')">Abbrechen</button>
+        <button class="btn btn-green" onclick="createOrder()" data-i18n="btnReleaseOrder">Prüfauftrag für Werkstatt freigeben ▶</button>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-home')" data-i18n="btnCancel">Abbrechen</button>
     </div>
 
     <!-- 3. AUFTRAGSLISTE WERKSTATT -->
     <div id="screen-orders" class="screen">
-        <h2>Offene Prüfungen (Werkstatt)</h2>
+        <h2>🛠️ <span data-i18n="workshopTitle">Offene Prüfungen (Werkstatt)</span></h2>
         <div id="orders-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
-        <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;">Zurück</button>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;" data-i18n="btnBack">Zurück</button>
     </div>
 
     <!-- 4. PRÜFUNG DURCHFÜHREN -->
@@ -325,7 +368,7 @@
         
         <div>
             <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                <span>Fortschritt</span>
+                <span data-i18n="lblProgress">Fortschritt</span>
                 <span id="progress-text">0 / 0</span>
             </div>
             <div class="progress-bar-container">
@@ -341,31 +384,31 @@
 
         <!-- LIVE-KOMMENTARFELD DIREKT DARUNTER -->
         <div class="form-group live-note-box">
-            <label for="step-note-text" style="color: #1e40af; font-weight: bold;">💬 Kommentar / Warte-Hinweis für diesen Punkt (Live im Büro):</label>
+            <label for="step-note-text" style="color: #1e40af; font-weight: bold;" data-i18n="lblLiveNote">💬 Kommentar / Warte-Hinweis für diesen Punkt (Live im Büro):</label>
             <input type="text" id="step-note-text" placeholder="z. B. 'Warte auf Kran', 'Teil wird geholt', 'Wartet auf Freigabe'..." oninput="saveCurrentNoteLive()">
         </div>
 
         <div id="remark-container" class="form-group" style="display: none;">
-            <label for="remark-text" style="color: var(--red);">🔴 Mangel beschreiben:</label>
+            <label for="remark-text" style="color: var(--red);" data-i18n="lblDescribeDefect">🔴 Mangel beschreiben:</label>
             <textarea id="remark-text" placeholder="Beschreibung des Fehlerbildes..."></textarea>
-            <button class="btn btn-red" onclick="confirmNOK()">Mangel speichern & Weiter</button>
+            <button class="btn btn-red" onclick="confirmNOK()" data-i18n="btnSaveDefect">Mangel speichern & Weiter</button>
         </div>
 
         <!-- OK / NICHT OK BUTTONS -->
         <div class="action-buttons" id="main-actions">
             <button class="btn btn-green" onclick="handleCheck(true)">🟢 OK</button>
-            <button class="btn btn-red" onclick="showRemarkInput()">🔴 NICHT OK</button>
+            <button class="btn btn-red" onclick="showRemarkInput()">🔴 <span data-i18n="btnNok">NICHT OK</span></button>
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 5px;">
-            <button class="btn btn-outline" id="btn-prev-step" onclick="prevStep()" style="flex: 1; padding: 10px; font-size: 0.9rem;">↩️ Vorheriger Punkt</button>
-            <button class="btn btn-secondary" onclick="pauseInspection()" style="flex: 1; padding: 10px; font-size: 0.9rem;">⏸️ Später weiterprüfen</button>
+            <button class="btn btn-outline" id="btn-prev-step" onclick="prevStep()" style="flex: 1; padding: 10px; font-size: 0.9rem;" data-i18n="btnPrevStep">↩️ Vorheriger Punkt</button>
+            <button class="btn btn-secondary" onclick="pauseInspection()" style="flex: 1; padding: 10px; font-size: 0.9rem;" data-i18n="btnPause">⏸️ Später weiterprüfen</button>
         </div>
     </div>
 
     <!-- 5. ENDKONTROLLE -->
     <div id="screen-final" class="screen">
-        <h2>Endkontrolle & Abschluss</h2>
+        <h2 data-i18n="finalTitle">Endkontrolle & Abschluss</h2>
         <div id="final-result-banner" style="text-align: center; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 1.2rem; color: white;"></div>
 
         <div class="info-card" id="final-summary"></div>
@@ -373,51 +416,51 @@
         <div class="result-list" id="final-results-list"></div>
 
         <div class="form-group" style="margin-top: 15px;">
-            <label for="worker-name">👷 Mitarbeiter / Monteur</label>
+            <label for="worker-name" data-i18n="lblWorker">👷 Mitarbeiter / Monteur</label>
             <input type="text" id="worker-name" placeholder="Name des Monteurs">
         </div>
         <div class="form-group">
-            <label for="inspector-name">👤 Endkontrolle durchgeführt von</label>
+            <label for="inspector-name" data-i18n="lblInspector">👤 Endkontrolle durchgeführt von</label>
             <input type="text" id="inspector-name" placeholder="Name des Prüfers">
         </div>
         <div class="form-group">
-            <label for="inspection-date">📅 Datum</label>
+            <label for="inspection-date" data-i18n="lblDate">📅 Datum</label>
             <input type="date" id="inspection-date">
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button class="btn btn-outline" onclick="printFinalInspection()">🖨️ Drucken / PDF</button>
-            <button class="btn btn-outline" onclick="sendMailCurrent()">✉️ Mail senden</button>
+            <button class="btn btn-outline" onclick="printFinalInspection()" data-i18n="btnPrint">🖨️ Drucken / PDF</button>
+            <button class="btn btn-outline" onclick="sendMailCurrent()" data-i18n="btnMail">✉️ Mail senden</button>
         </div>
 
-        <button class="btn btn-green" onclick="saveInspection()" style="margin-top: 10px;">Prüfung Speichern & Archivieren 💾</button>
+        <button class="btn btn-green" onclick="saveInspection()" style="margin-top: 10px;" data-i18n="btnSaveArchive">Prüfung Speichern & Archivieren 💾</button>
     </div>
 
     <!-- 6. ARCHIV -->
     <div id="screen-archive" class="screen">
-        <h2>📜 Archivierte Prüfprotokolle</h2>
+        <h2 data-i18n="archiveTitle">📜 Archivierte Prüfprotokolle</h2>
         
         <div class="form-group">
-            <input type="text" id="archive-search" placeholder="🔍 Suche nach Auftrags-Nr, Seriennummer, Modell..." oninput="filterArchive()">
+            <input type="text" id="archive-search" placeholder="🔍 Suche..." oninput="filterArchive()">
         </div>
 
         <div id="archive-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
-        <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;">Zurück</button>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;" data-i18n="btnBack">Zurück</button>
     </div>
 
     <!-- 7. ARCHIV DETAILANSICHT -->
     <div id="screen-archive-detail" class="screen">
-        <h2>Prüfprotokoll Detailansicht</h2>
+        <h2 data-i18n="archiveDetailTitle">Prüfprotokoll Detailansicht</h2>
         <div id="archive-detail-banner" style="text-align: center; padding: 12px; border-radius: 8px; font-weight: bold; color: white; margin-bottom: 10px;"></div>
         <div class="info-card" id="archive-detail-info"></div>
         <div class="result-list" id="archive-detail-results"></div>
 
         <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button class="btn btn-outline" onclick="printArchiveInspection()">🖨️ Drucken / PDF</button>
-            <button class="btn btn-outline" onclick="sendMailArchive()">✉️ Mail senden</button>
+            <button class="btn btn-outline" onclick="printArchiveInspection()" data-i18n="btnPrint">🖨️ Drucken / PDF</button>
+            <button class="btn btn-outline" onclick="sendMailArchive()" data-i18n="btnMail">✉️ Mail senden</button>
         </div>
-        <button class="btn btn-red" onclick="deleteArchiveDetail()" style="margin-top: 10px;">🗑️ Dieses Protokoll unwiderruflich löschen</button>
-        <button class="btn btn-secondary" onclick="goToScreen('screen-archive')" style="margin-top: 5px;">Zurück zum Archiv</button>
+        <button class="btn btn-red" onclick="deleteArchiveDetail()" style="margin-top: 10px;" data-i18n="btnDeleteProtocol">🗑️ Dieses Protokoll unwiderruflich löschen</button>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-archive')" style="margin-top: 5px;" data-i18n="btnBackArchive">Zurück zum Archiv</button>
     </div>
 </div>
 
@@ -467,57 +510,165 @@
 </script>
 
 <script>
+    // --- DICTIONARY FÜR DEUTSCH & FRANZÖSISCH ---
+    let currentLang = 'de';
+
+    const translations = {
+        de: {
+            appTitle: "📋 Maschinenprüfung Kontrollliste",
+            btnScanQr: "QR-Code scannen (Etikett)",
+            btnScanQrShort: "QR-Code scannen",
+            btnNewOrder: "Prüfauftrag anlegen / ERP Daten eingeben",
+            btnWorkshop: "Werkstatt / Offene Prüfungen",
+            btnOfficeLive: "Büro / Live Dashboard (Nur Lesen)",
+            btnArchive: "Archiv / Abgeschlossene Protokolle",
+            scanTitle: "📷 Etikett mit QR-Code scannen",
+            scanHint: "Halte die Kamera über den QR-Code des Maschinen-Etiketts.",
+            btnCancel: "Abbrechen",
+            officeTitle: "Büro Live-Dashboard (Echtzeit-Monitoren)",
+            officeSub: "Hier wird der Live-Fortschritt & Wartezustände der Werkstatt automatisch aktualisiert.",
+            btnBackHome: "Zurück zum Hauptmenü",
+            newOrderTitle: "ERP-Daten & Spezifikationen eingeben",
+            lblOrderNo: "📌 Auftragsnummer",
+            lblType: "Maschinentyp / Modell",
+            lblSerial: "Seriennummer",
+            lblPipe: "Rohrlänge (Händische Eingabe)",
+            lblAxis: "Achse / Spezifikation",
+            lblMotor: "Motor-Leistung / Typ",
+            lblComment: "💬 Besondere Hinweise / Kommentar für Werkstatt",
+            lblSelectItems: "Prüfpunkte individuell auswählen:",
+            btnAllOn: "Alle an",
+            btnAllOff: "Alle aus",
+            btnReleaseOrder: "Prüfauftrag für Werkstatt freigeben ▶",
+            workshopTitle: "Offene Prüfungen (Werkstatt)",
+            btnBack: "Zurück",
+            lblProgress: "Fortschritt",
+            lblLiveNote: "💬 Kommentar / Warte-Hinweis für diesen Punkt (Live im Büro):",
+            lblDescribeDefect: "🔴 Mangel beschreiben:",
+            btnSaveDefect: "Mangel speichern & Weiter",
+            btnNok: "NICHT OK",
+            btnPrevStep: "↩️ Vorheriger Punkt",
+            btnPause: "⏸️ Später weiterprüfen",
+            finalTitle: "Endkontrolle & Abschluss",
+            lblWorker: "👷 Mitarbeiter / Monteur",
+            lblInspector: "👤 Endkontrolle durchgeführt von",
+            lblDate: "📅 Datum",
+            btnPrint: "🖨️ Drucken / PDF",
+            btnMail: "✉️ Mail senden",
+            btnSaveArchive: "Prüfung Speichern & Archivieren 💾",
+            archiveTitle: "📜 Archivierte Prüfprotokolle",
+            archiveDetailTitle: "Prüfprotokoll Detailansicht",
+            btnDeleteProtocol: "🗑️ Dieses Protokoll unwiderruflich löschen",
+            btnBackArchive: "Zurück zum Archiv",
+            statusApproved: "FREIGEGEBEN",
+            statusNotApproved: "NICHT FREIGEGEBEN",
+            checkStepPrefix: "Prüfpunkt",
+            checkStepOf: "von"
+        },
+        fr: {
+            appTitle: "📋 Contrôle des machines - Liste de vérification",
+            btnScanQr: "Scanner le code QR (Étiquette)",
+            btnScanQrShort: "Scanner le code QR",
+            btnNewOrder: "Créer un ordre / Saisir données ERP",
+            btnWorkshop: "Atelier / Contrôles en cours",
+            btnOfficeLive: "Bureau / Tableau de bord en direct",
+            btnArchive: "Archives / Procès-verbaux terminés",
+            scanTitle: "📷 Scanner le code QR de l'étiquette",
+            scanHint: "Pointez la caméra sur le code QR de l'étiquette machine.",
+            btnCancel: "Annuler",
+            officeTitle: "Bureau - Tableau de bord en direct",
+            officeSub: "Le progrès et les attentes de l'atelier sont mis à jour automatiquement.",
+            btnBackHome: "Retour au menu principal",
+            newOrderTitle: "Saisir les données ERP & spécifications",
+            lblOrderNo: "📌 Numéro de commande",
+            lblType: "Type de machine / Modèle",
+            lblSerial: "Numéro de série",
+            lblPipe: "Longueur de tube (Saisie manuelle)",
+            lblAxis: "Axe / Spécification",
+            lblMotor: "Puissance moteur / Type",
+            lblComment: "💬 Instructions particulières / Commentaires atelier",
+            lblSelectItems: "Sélectionner les points de contrôle :",
+            btnAllOn: "Tout cocher",
+            btnAllOff: "Tout décocher",
+            btnReleaseOrder: "Valider l'ordre pour l'atelier ▶",
+            workshopTitle: "Contrôles en attente (Atelier)",
+            btnBack: "Retour",
+            lblProgress: "Progression",
+            lblLiveNote: "💬 Commentaire / Attente (En direct pour le bureau) :",
+            lblDescribeDefect: "🔴 Décrire le défaut :",
+            btnSaveDefect: "Enregistrer le défaut & Continuer",
+            btnNok: "NON CONFORME",
+            btnPrevStep: "↩️ Point précédent",
+            btnPause: "⏸️ Continuer plus tard",
+            finalTitle: "Contrôle final & Validation",
+            lblWorker: "👷 Employé / Monteur",
+            lblInspector: "👤 Contrôle final effectué par",
+            lblDate: "📅 Date",
+            btnPrint: "🖨️ Imprimer / PDF",
+            btnMail: "✉️ Envoyer par e-mail",
+            btnSaveArchive: "Enregistrer & Archiver 💾",
+            archiveTitle: "📜 Procès-verbaux archivés",
+            archiveDetailTitle: "Détails du procès-verbal",
+            btnDeleteProtocol: "🗑️ Supprimer définitivement ce rapport",
+            btnBackArchive: "Retour aux archives",
+            statusApproved: "VALIDÉ",
+            statusNotApproved: "NON VALIDÉ",
+            checkStepPrefix: "Point de contrôle",
+            checkStepOf: "sur"
+        }
+    };
+
     const masterChecklistGrouped = [
         {
-            groupName: "Baugruppe 1: Basismontage",
+            groupName: { de: "Baugruppe 1: Basismontage", fr: "Groupe 1: Montage de base" },
             items: [
-                "Zwischenlager montiert",
-                "Zwischenlager geprüft",
-                "Flanschlager festgezogen",
-                "Madenschrauben an Flanschlager festgezogen",
-                "Gleitlagerkopf angezogen",
-                "Schmierleitung festgezogen",
-                "Öl eingesetzt / aufgefüllt"
+                { de: "Zwischenlager montiert", fr: "Paliermédiaire monté" },
+                { de: "Zwischenlager geprüft", fr: "Paliermédiaire contrôlé" },
+                { de: "Flanschlager festgezogen", fr: "Palier à bride serré" },
+                { de: "Madenschrauben an Flanschlager festgezogen", fr: "Vis sans tête du palier à bride serrées" },
+                { de: "Gleitlagerkopf angezogen", fr: "Tête de palier lisse serrée" },
+                { de: "Schmierleitung festgezogen", fr: "Conduite de graissage serrée" },
+                { de: "Öl eingesetzt / aufgefüllt", fr: "Huile ajoutée / remplie" }
             ]
         },
         {
-            groupName: "Baugruppe 2: Flügel, Ring & Gummis",
+            groupName: { de: "Baugruppe 2: Flügel, Ring & Gummis", fr: "Groupe 2: Pales, Anneau & Caoutchoucs" },
             items: [
-                "Ring montiert",
-                "Flügel montiert",
-                "Flügel mit Kiloschlüssel festgezogen",
-                "Ring exakt ausgerichtet",
-                "Gummis montiert"
+                { de: "Ring montiert", fr: "Anneau monté" },
+                { de: "Flügel montiert", fr: "Pales montées" },
+                { de: "Flügel mit Kiloschlüssel festgezogen", fr: "Pales serrées à la clé dynamométrique" },
+                { de: "Ring exakt ausgerichtet", fr: "Anneau parfaitement aligné" },
+                { de: "Gummis montiert", fr: "Caoutchoucs montés" }
             ]
         },
         {
-            groupName: "Baugruppe 3: Antrieb & Motorkiste",
+            groupName: { de: "Baugruppe 3: Antrieb & Motorkiste", fr: "Groupe 3: Entraînement & Caisson moteur" },
             items: [
-                "Motorkiste montiert & festgezogen",
-                "Motor montiert & festgezogen",
-                "Keilriemen auf Spannung & Sitz geprüft",
-                "Riemenscheiben festgezogen"
+                { de: "Motorkiste montiert & festgezogen", fr: "Caisson moteur monté et serré" },
+                { de: "Motor montiert & festgezogen", fr: "Moteur monté et serré" },
+                { de: "Keilriemen auf Spannung & Sitz geprüft", fr: "Tension et assise de la courroie contrôlées" },
+                { de: "Riemenscheiben festgezogen", fr: "Poulies serrées" }
             ]
         },
         {
-            groupName: "Baugruppe 4: Elektrik & Testlauf",
+            groupName: { de: "Baugruppe 4: Elektrik & Testlauf", fr: "Groupe 4: Électricité & Test de fonctionnement" },
             items: [
-                "Schaltkasten auf Funktion getestet",
-                "Kabel & Anschlüsse geprüft",
-                "Maschinen-Testlauf durchgeführt"
+                { de: "Schaltkasten auf Funktion getestet", fr: "Armoire électrique testée" },
+                { de: "Kabel & Anschlüsse geprüft", fr: "Câbles et raccordements contrôlés" },
+                { de: "Maschinen-Testlauf durchgeführt", fr: "Essai de fonctionnement de la machine effectué" }
             ]
         },
         {
-            groupName: "Baugruppe 5: Zubehör, Verpackung & Optik",
+            groupName: { de: "Baugruppe 5: Zubehör, Verpackung & Optik", fr: "Groupe 5: Accessoires, Emballage & Esthétique" },
             items: [
-                "Hauben montiert & festgezogen",
-                "Spanner verpackt / beigelegt",
-                "Deckelsatz-System verpackt",
-                "Schrauben für Deckelsatz beigelegt",
-                "Typenschild geklebt",
-                "Optische Sauberkeit der Maschine geprüft",
-                "Alle erforderlichen Aufkleber vorhanden & korrekt angebracht",
-                "Maschine komplett eingepackt inkl. Flügel"
+                { de: "Hauben montiert & festgezogen", fr: "Capots montés et serrés" },
+                { de: "Spanner verpackt / beigelegt", fr: "Tendeurs emballés / joints" },
+                { de: "Deckelsatz-System verpackt", fr: "Jeu de couvercles emballé" },
+                { de: "Schrauben für Deckelsatz beigelegt", fr: "Vis pour jeu de couvercles jointes" },
+                { de: "Typenschild geklebt", fr: "Plaque signalétique collée" },
+                { de: "Optische Sauberkeit der Maschine geprüft", fr: "Propreté visuelle de la machine contrôlée" },
+                { de: "Alle erforderlichen Aufkleber vorhanden & korrekt angebracht", fr: "Autocollants requis présents et bien posés" },
+                { de: "Maschine komplett eingepackt inkl. Flügel", fr: "Machine entièrement emballée, pales incluses" }
             ]
         }
     ];
@@ -529,10 +680,92 @@
     let currentStep = 0;
     let inspectionResults = [];
     let selectedArchiveItem = null;
+    let html5QrCode = null;
 
     window.onload = function() {
         renderChecklistSelection();
     };
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        document.getElementById('btn-de').classList.toggle('active', lang === 'de');
+        document.getElementById('btn-fr').classList.toggle('active', lang === 'fr');
+
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (translations[lang] && translations[lang][key]) {
+                el.innerText = translations[lang][key];
+            }
+        });
+
+        renderChecklistSelection();
+        renderOrders();
+        renderOfficeLive();
+    }
+
+    // --- QR SCANNER LOGIK ---
+    function openScanner() {
+        goToScreen('screen-scanner');
+        html5QrCode = new Html5Qrcode("qr-reader");
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+            .catch(err => {
+                console.error("Kamera Fehler:", err);
+                alert("Kamera konnte nicht geöffnet werden.");
+                goToScreen('screen-home');
+            });
+    }
+
+    function closeScanner() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                html5QrCode.clear();
+                goToScreen('screen-home');
+            }).catch(() => goToScreen('screen-home'));
+        } else {
+            goToScreen('screen-home');
+        }
+    }
+
+    function onScanSuccess(decodedText) {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => html5QrCode.clear());
+        }
+
+        // Parsing des QR-Codes (Trennzeichen Semikolon ODER Link-Parameter)
+        let nr = "", typ = "", sn = "", rohr = "", achse = "", kw = "";
+
+        if (decodedText.includes('?')) {
+            const urlParams = new URLSearchParams(decodedText.split('?')[1]);
+            nr = urlParams.get('nr') || urlParams.get('order') || "";
+            typ = urlParams.get('typ') || "";
+            sn = urlParams.get('sn') || "";
+            rohr = urlParams.get('rohr') || "";
+            achse = urlParams.get('achse') || "";
+            kw = urlParams.get('kw') || "";
+        } else if (decodedText.includes(';')) {
+            const parts = decodedText.split(';');
+            nr = parts[0] || "";
+            typ = parts[1] || "";
+            sn = parts[2] || "";
+            rohr = parts[3] || "";
+            achse = parts[4] || "";
+            kw = parts[5] || "";
+        } else {
+            nr = decodedText.trim();
+        }
+
+        document.getElementById('order-no').value = nr;
+        if (typ) document.getElementById('order-type').value = typ;
+        if (sn) document.getElementById('order-serial').value = sn;
+        if (rohr) document.getElementById('order-pipe').value = rohr;
+        if (achse) document.getElementById('order-axis').value = achse;
+        if (kw) document.getElementById('order-kw').value = kw;
+
+        alert(currentLang === 'fr' ? "Code QR scanné avec succès !" : "QR-Code erfolgreich gescannt!");
+        goToScreen('screen-new-order');
+    }
 
     function updateSingleOrderInFirebase(orderObj) {
         if (window.db && window.dbSet && window.dbRef) {
@@ -563,10 +796,11 @@
         masterChecklistGrouped.forEach(group => {
             const title = document.createElement('div');
             title.className = 'bg-section-title';
-            title.innerText = group.groupName;
+            title.innerText = group.groupName[currentLang] || group.groupName.de;
             container.appendChild(title);
 
-            group.items.forEach(itemText => {
+            group.items.forEach(itemObj => {
+                const itemText = itemObj[currentLang] || itemObj.de;
                 const label = document.createElement('label');
                 label.className = 'checkbox-group';
                 label.innerHTML = `
@@ -599,7 +833,7 @@
         const serial = document.getElementById('order-serial').value.trim();
 
         if (!orderNo || !type || !serial) {
-            alert("Bitte Auftragsnummer, Maschinentyp und Seriennummer eingeben.");
+            alert(currentLang === 'fr' ? "Veuillez saisir le numéro de commande, le type et le numéro de série." : "Bitte Auftragsnummer, Maschinentyp und Seriennummer eingeben.");
             return;
         }
 
@@ -609,7 +843,7 @@
         });
 
         if (selectedItems.length === 0) {
-            alert("Bitte mindestens einen Prüfpunkt auswählen.");
+            alert(currentLang === 'fr' ? "Veuillez sélectionner au moins un point de contrôle." : "Bitte mindestens einen Prüfpunkt auswählen.");
             return;
         }
 
@@ -618,9 +852,9 @@
             orderNo: orderNo,
             type: type,
             serial: serial,
-            pipe: document.getElementById('order-pipe').value.trim() || 'Keine Angabe',
-            axis: document.getElementById('order-axis').value.trim() || 'Standard-Achse',
-            kw: document.getElementById('order-kw').value.trim() || 'Standard / keine Angabe',
+            pipe: document.getElementById('order-pipe').value.trim() || '-',
+            axis: document.getElementById('order-axis').value.trim() || '-',
+            kw: document.getElementById('order-kw').value.trim() || '-',
             comment: document.getElementById('order-comment').value.trim() || '',
             selectedItems: selectedItems,
             status: 'OFFEN',
@@ -631,7 +865,7 @@
 
         window.orders.push(newOrder);
         saveOrdersToFirebase();
-        alert('Prüfauftrag erfolgreich angelegt!');
+        alert(currentLang === 'fr' ? 'Ordre créé avec succès !' : 'Prüfauftrag erfolgreich angelegt!');
         
         document.getElementById('order-no').value = '';
         document.getElementById('order-type').value = '';
@@ -650,7 +884,7 @@
         container.innerHTML = '';
 
         if (window.orders.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color: var(--gray);">Keine offenen Prüfungen vorhanden.</p>';
+            container.innerHTML = `<p style="text-align:center; color: var(--gray);">${currentLang === 'fr' ? 'Aucun contrôle en attente.' : 'Keine offenen Prüfungen vorhanden.'}</p>`;
             return;
         }
 
@@ -668,29 +902,29 @@
 
             const nokCount = results.filter(r => r && r.status === 'NOK').length;
 
-            let statusBadge = `<span class="badge-status badge-blue">BEREIT</span>`;
+            let statusBadge = `<span class="badge-status badge-blue">${currentLang === 'fr' ? 'PRÊT' : 'BEREIT'}</span>`;
             if (current > 0 && current < total) {
-                statusBadge = `<span class="badge-status badge-yellow">IN BEARBEITUNG (${percent}%)</span>`;
+                statusBadge = `<span class="badge-status badge-yellow">${currentLang === 'fr' ? 'EN COURS' : 'IN BEARBEITUNG'} (${percent}%)</span>`;
             } else if (current >= total && total > 0) {
-                statusBadge = `<span class="badge-status badge-green">PRÜFUNG BEENDET</span>`;
+                statusBadge = `<span class="badge-status badge-green">${currentLang === 'fr' ? 'TERMINÉ' : 'PRÜFUNG BEENDET'}</span>`;
             }
 
-            let nokBadge = nokCount > 0 ? `<span class="badge-status badge-red" style="margin-left: 4px;">🔴 ${nokCount} Mangel</span>` : '';
+            let nokBadge = nokCount > 0 ? `<span class="badge-status badge-red" style="margin-left: 4px;">🔴 ${nokCount} ${currentLang === 'fr' ? 'Défaut(s)' : 'Mangel'}</span>` : '';
 
             div.innerHTML = `
                 <div style="flex: 1; margin-right: 10px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>Auftrag-Nr: ${o.orderNo}</strong>
+                        <strong>N°: ${o.orderNo}</strong>
                         <div>${statusBadge} ${nokBadge}</div>
                     </div>
                     <strong>${o.type}</strong> (SN: ${o.serial})<br>
-                    <small>Rohr: ${o.pipe} | Achse: ${o.axis} | Motor: ${o.kw}</small>
+                    <small>Tube: ${o.pipe} | Axe: ${o.axis} | Moteur: ${o.kw}</small>
                     ${o.comment ? `<br><small style="color: var(--primary); font-style: italic;">💬 ${o.comment}</small>` : ''}
                     
                     <div style="margin-top: 8px;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold; color: var(--gray);">
-                            <span>Live-Fortschritt:</span>
-                            <span>${current} / ${total} geprüft (${successRate}% OK)</span>
+                            <span>${currentLang === 'fr' ? 'Progression:' : 'Live-Fortschritt:'}</span>
+                            <span>${current} / ${total} (${successRate}% OK)</span>
                         </div>
                         <div class="progress-bar-container" style="height: 6px;">
                             <div class="progress-bar" style="width: ${percent}%; background-color: ${nokCount > 0 ? 'var(--yellow)' : 'var(--primary)'};"></div>
@@ -698,8 +932,8 @@
                     </div>
                 </div>
                 <div style="display: flex; gap: 6px; flex-direction: column;">
-                    <button class="btn btn-green" style="width: auto; padding: 8px 12px; white-space: nowrap;" onclick="startInspection(${o.id})">${current > 0 ? 'Weiterprüfen ▶' : 'Prüfen ▶'}</button>
-                    <button class="btn btn-outline-red" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onclick="deleteOrder(${o.id})">🗑️ Löschen</button>
+                    <button class="btn btn-green" style="width: auto; padding: 8px 12px; white-space: nowrap;" onclick="startInspection(${o.id})">${current > 0 ? (currentLang === 'fr' ? 'Continuer ▶' : 'Weiterprüfen ▶') : (currentLang === 'fr' ? 'Contrôler ▶' : 'Prüfen ▶')}</button>
+                    <button class="btn btn-outline-red" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onclick="deleteOrder(${o.id})">🗑️</button>
                 </div>
             `;
             container.appendChild(div);
@@ -711,7 +945,7 @@
         container.innerHTML = '';
 
         if (window.orders.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color: var(--gray);">Aktuell laufen keine Prüfungen in der Werkstatt.</p>';
+            container.innerHTML = `<p style="text-align:center; color: var(--gray);">${currentLang === 'fr' ? 'Aucun contrôle en cours dans l\'atelier.' : 'Aktuell laufen keine Prüfungen in der Werkstatt.'}</p>`;
             return;
         }
 
@@ -730,34 +964,34 @@
             const nokItems = results.filter(r => r && r.status === 'NOK');
             const nokCount = nokItems.length;
 
-            let statusBadge = `<span class="badge-status badge-blue">BEREIT</span>`;
+            let statusBadge = `<span class="badge-status badge-blue">${currentLang === 'fr' ? 'PRÊT' : 'BEREIT'}</span>`;
             if (current > 0 && current < total) {
-                statusBadge = `<span class="badge-status badge-yellow">IN BEARBEITUNG (${percent}%)</span>`;
+                statusBadge = `<span class="badge-status badge-yellow">${currentLang === 'fr' ? 'EN COURS' : 'IN BEARBEITUNG'} (${percent}%)</span>`;
             } else if (current >= total && total > 0) {
-                statusBadge = `<span class="badge-status badge-green">PRÜFUNG BEENDET</span>`;
+                statusBadge = `<span class="badge-status badge-green">${currentLang === 'fr' ? 'TERMINÉ' : 'PRÜFUNG BEENDET'}</span>`;
             }
 
-            let nokBadge = nokCount > 0 ? `<span class="badge-status badge-red" style="margin-left: 4px;">🔴 ${nokCount} Mangel</span>` : '';
+            let nokBadge = nokCount > 0 ? `<span class="badge-status badge-red" style="margin-left: 4px;">🔴 ${nokCount} ${currentLang === 'fr' ? 'Défaut(s)' : 'Mangel'}</span>` : '';
 
             let nokDetailsHtml = '';
             if (nokCount > 0) {
                 nokDetailsHtml = `
                     <div style="margin-top: 10px; padding: 8px 12px; background-color: #fef2f2; border-left: 4px solid var(--red); border-radius: 4px; font-size: 0.85rem;">
-                        <strong style="color: var(--red);">⚠️ Erfasste Mängel (Werkstatt):</strong>
+                        <strong style="color: var(--red);">${currentLang === 'fr' ? '⚠️ Défauts enregistrés (Atelier) :' : '⚠️ Erfasste Mängel (Werkstatt):'}</strong>
                         <ul style="margin: 4px 0 0 18px; color: #991b1b;">
-                            ${nokItems.map(item => `<li><b>${item.item}:</b> ${item.remark}</li>`).join('')}
+                            ${nokItems.map(item => `<li><b>${item.item}:</b>${item.remark}</li>`).join('')}
                         </ul>
                     </div>
                 `;
             }
 
-            let currentPointName = (o.selectedItems && o.selectedItems[current]) ? o.selectedItems[current] : 'Unbekannt';
+            let currentPointName = (o.selectedItems && o.selectedItems[current]) ? o.selectedItems[current] : '-';
             let liveStatusHtml = '';
             if (current < total) {
                 liveStatusHtml = `
                     <div style="margin-top: 8px; padding: 8px 10px; background-color: #eff6ff; border-left: 4px solid var(--primary); border-radius: 4px; font-size: 0.85rem;">
-                        <b>📍 Aktueller Prüfpunkt:</b> ${currentPointName}<br>
-                        ${o.liveNote ? `<span style="color: #1d4ed8; font-weight: bold; font-size: 0.9rem;">💬 Monteur-Kommentar: "${o.liveNote}"</span>` : `<span style="color: var(--gray); font-style: italic;">(Kein Live-Kommentar eingetragen)</span>`}
+                        <b>📍 ${currentLang === 'fr' ? 'Point actuel :' : 'Aktueller Prüfpunkt:'}</b> ${currentPointName}<br>
+                        ${o.liveNote ? `<span style="color: #1d4ed8; font-weight: bold; font-size: 0.9rem;">💬 Monteur: "${o.liveNote}"</span>` : `<span style="color: var(--gray); font-style: italic;">(${currentLang === 'fr' ? 'Pas de commentaire' : 'Kein Live-Kommentar eingetragen'})</span>`}
                     </div>
                 `;
             }
@@ -765,17 +999,17 @@
             div.innerHTML = `
                 <div style="flex: 1;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-                        <strong>Auftrag-Nr: ${o.orderNo}</strong>
+                        <strong>N°: ${o.orderNo}</strong>
                         <div>${statusBadge} ${nokBadge}</div>
                     </div>
                     <strong>${o.type}</strong> (SN: ${o.serial})<br>
-                    <small>Rohr: ${o.pipe} | Achse: ${o.axis} | Motor: ${o.kw}</small>
-                    ${o.comment ? `<br><small style="color: var(--primary); font-style: italic;">💬 Auftrags-Hinweis: ${o.comment}</small>` : ''}
+                    <small>Tube: ${o.pipe} | Axe: ${o.axis} | Moteur: ${o.kw}</small>
+                    ${o.comment ? `<br><small style="color: var(--primary); font-style: italic;">💬 ${o.comment}</small>` : ''}
                     
                     <div style="margin-top: 8px;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold; color: var(--gray);">
-                            <span>Live-Fortschritt Werkstatt:</span>
-                            <span>${current} / ${total} geprüft (${successRate}% OK)</span>
+                            <span>${currentLang === 'fr' ? 'Progression atelier :' : 'Live-Fortschritt Werkstatt:'}</span>
+                            <span>${current} / ${total} (${successRate}% OK)</span>
                         </div>
                         <div class="progress-bar-container" style="height: 8px;">
                             <div class="progress-bar" style="width: ${percent}%; background-color: ${nokCount > 0 ? 'var(--yellow)' : 'var(--primary)'};"></div>
@@ -791,7 +1025,8 @@
     }
 
     function deleteOrder(orderId) {
-        if (confirm("Möchtest du diesen fehlerhaften Prüfauftrag wirklich löschen?")) {
+        const msg = currentLang === 'fr' ? "Voulez-vous vraiment supprimer cet ordre ?" : "Möchtest du diesen fehlerhaften Prüfauftrag wirklich löschen?";
+        if (confirm(msg)) {
             window.orders = window.orders.filter(o => o.id !== orderId);
             if (window.db && window.dbRemove && window.dbRef) {
                 window.dbRemove(window.dbRef(window.db, 'orders/' + orderId));
@@ -810,10 +1045,10 @@
         inspectionResults = currentOrder.inspectionResults || [];
 
         document.getElementById('inspection-info').innerHTML = `
-            <b>Auftrags-Nr:</b> ${currentOrder.orderNo}<br>
-            <b>Typ:</b> ${currentOrder.type} | <b>SN:</b> ${currentOrder.serial}<br>
-            <b>Spezifikation:</b> Rohrlänge: ${currentOrder.pipe} | Achse: ${currentOrder.axis} | Motor: ${currentOrder.kw}
-            ${currentOrder.comment ? `<br><b style="color: var(--primary);">💬 Werkstatt-Hinweis:</b> ${currentOrder.comment}` : ''}
+            <b>N°:</b> ${currentOrder.orderNo}<br>
+            <b>Type:</b> ${currentOrder.type} | <b>SN:</b> ${currentOrder.serial}<br>
+            <b>Spec:</b> Tube: ${currentOrder.pipe} | Axe: ${currentOrder.axis} | Moteur: ${currentOrder.kw}
+            ${currentOrder.comment ? `<br><b style="color: var(--primary);">💬 Note:</b> ${currentOrder.comment}` : ''}
         `;
 
         updateStepView();
@@ -823,9 +1058,7 @@
     function updateStepView() {
         const total = activeChecklist.length;
 
-        if (currentStep > total) {
-            currentStep = total;
-        }
+        if (currentStep > total) currentStep = total;
 
         const percent = total > 0 ? Math.round((currentStep / total) * 100) : 0;
         document.getElementById('progress-text').innerText = `${currentStep} / ${total}`;
@@ -844,7 +1077,9 @@
         }
 
         if (currentStep < total) {
-            document.getElementById('check-step').innerText = `Prüfpunkt ${currentStep + 1} von ${total}`;
+            const prefix = translations[currentLang].checkStepPrefix;
+            const ofWord = translations[currentLang].checkStepOf;
+            document.getElementById('check-step').innerText = `${prefix} ${currentStep + 1} ${ofWord} ${total}`;
             document.getElementById('check-text').innerText = activeChecklist[currentStep];
             document.getElementById('remark-container').style.display = 'none';
             document.getElementById('main-actions').style.display = 'flex';
@@ -896,7 +1131,7 @@
         const note = document.getElementById('step-note-text').value.trim();
 
         if (!remark) { 
-            alert("Bitte Mangel beschreiben."); 
+            alert(currentLang === 'fr' ? "Veuillez décrire le défaut." : "Bitte Mangel beschreiben."); 
             return; 
         }
 
@@ -948,33 +1183,36 @@
         const hasErrors = nokCount > 0;
         const banner = document.getElementById('final-result-banner');
 
-        currentOrder.status = hasErrors ? "NICHT FREIGEGEBEN" : "FREIGEGEBEN";
+        const statusApp = translations[currentLang].statusApproved;
+        const statusNotApp = translations[currentLang].statusNotApproved;
+
+        currentOrder.status = hasErrors ? statusNotApp : statusApp;
 
         if (hasErrors) {
-            banner.innerText = `🔴 MASCHINE NICHT FREIGEGEBEN (${successRate}% OK)`;
+            banner.innerText = `🔴 ${statusNotApp} (${successRate}% OK)`;
             banner.style.backgroundColor = "var(--red)";
         } else {
-            banner.innerText = `🟢 MASCHINE FREIGEGEBEN (100% OK)`;
+            banner.innerText = `🟢 ${statusApp} (100% OK)`;
             banner.style.backgroundColor = "var(--green)";
         }
 
         let barColor = successRate === 100 ? 'var(--green)' : (successRate >= 80 ? 'var(--yellow)' : 'var(--red)');
 
         document.getElementById('final-summary').innerHTML = `
-            <b>Auftrags-Nr:</b> ${currentOrder.orderNo}<br>
-            <b>Typ:</b> ${currentOrder.type} | <b>SN:</b> ${currentOrder.serial}<br>
-            <b>Rohrlänge:</b> ${currentOrder.pipe} | <b>Achse:</b> ${currentOrder.axis}<br>
-            <b>Motor:</b> ${currentOrder.kw}<br>
-            ${currentOrder.comment ? `<b>Hinweis:</b> ${currentOrder.comment}<br>` : ''}
+            <b>N°:</b> ${currentOrder.orderNo}<br>
+            <b>Type:</b> ${currentOrder.type} | <b>SN:</b> ${currentOrder.serial}<br>
+            <b>Tube:</b> ${currentOrder.pipe} | <b>Axe:</b> ${currentOrder.axis}<br>
+            <b>Moteur:</b> ${currentOrder.kw}<br>
+            ${currentOrder.comment ? `<b>Note:</b> ${currentOrder.comment}<br>` : ''}
             <hr style="margin: 8px 0; border: 0.5px solid var(--border-color);">
-            <b>Erfolgsquote:</b> ${successRate}% OK (${okCount} von ${totalCount} Prüfpunkte OK, ${nokCount} Mängel)
+            <b>Taux:</b> ${successRate}% OK (${okCount} / ${totalCount} OK)
             <div class="progress-bar-container" style="height: 8px; margin-top: 6px;">
                 <div class="progress-bar" style="width: ${successRate}%; background-color: ${barColor};"></div>
             </div>
         `;
 
         const resultsList = document.getElementById('final-results-list');
-        resultsList.innerHTML = '<h4>Prüfpunkte & Mängelbehebung:</h4>';
+        resultsList.innerHTML = `<h4>${currentLang === 'fr' ? 'Points de contrôle & Corrections :' : 'Prüfpunkte & Mängelbehebung:'}</h4>`;
         
         validResults.forEach((r, idx) => {
             const itemDiv = document.createElement('div');
@@ -982,21 +1220,22 @@
             itemDiv.className = `result-item ${statusClass}`;
             
             let statusText = r.status;
-            if (r.status === 'KORRIGIERT') statusText = '🟢 KORRIGIERT (OK)';
+            if (r.status === 'KORRIGIERT') statusText = '🟢 KORRIGIERT / CORRIGÉ (OK)';
 
             itemDiv.innerHTML = `
                 <div><strong>${idx + 1}. ${r.item}</strong> - <span>${statusText}</span></div>
-                ${r.note ? `<small style="color: var(--primary); margin-top: 2px;">💬 Kommentar: ${r.note}</small>` : ''}
-                ${r.remark ? `<small style="color: var(--red); margin-top: 3px;">⚠️ Mangel: ${r.remark}</small>` : ''}
-                ${r.fixNote ? `<small style="color: var(--green); margin-top: 3px;">✅ Nachbesserung: ${r.fixNote}</small>` : ''}
-                ${r.status === 'NOK' ? `<button class="btn-fix" onclick="fixItemCurrent(${idx})">🛠️ Mangel beheben & freigeben</button>` : ''}
+                ${r.note ? `<small style="color: var(--primary); margin-top: 2px;">💬 ${r.note}</small>` : ''}
+                ${r.remark ? `<small style="color: var(--red); margin-top: 3px;">⚠️ ${r.remark}</small>` : ''}
+                ${r.fixNote ? `<small style="color: var(--green); margin-top: 3px;">✅ ${r.fixNote}</small>` : ''}
+                ${r.status === 'NOK' ? `<button class="btn-fix" onclick="fixItemCurrent(${idx})">🛠️ ${currentLang === 'fr' ? 'Corriger & Valider' : 'Mangel beheben & freigeben'}</button>` : ''}
             `;
             resultsList.appendChild(itemDiv);
         });
     }
 
     function fixItemCurrent(index) {
-        const fixNote = prompt("Bitte beschreiben, wie der Mangel behoben wurde (z.B. 'Schraube nachgezogen'):");
+        const promptMsg = currentLang === 'fr' ? "Veuillez décrire la correction effectuée :" : "Bitte beschreiben, wie der Mangel behoben wurde (z.B. 'Schraube nachgezogen'):";
+        const fixNote = prompt(promptMsg);
         if (!fixNote) return;
 
         inspectionResults[index].status = 'KORRIGIERT';
@@ -1006,7 +1245,8 @@
 
     function fixItemArchive(index) {
         if (!selectedArchiveItem) return;
-        const fixNote = prompt("Bitte beschreiben, wie der Mangel behoben wurde (z.B. 'Teil ausgetauscht'):");
+        const promptMsg = currentLang === 'fr' ? "Veuillez décrire la correction effectuée :" : "Bitte beschreiben, wie der Mangel behoben wurde (z.B. 'Teil ausgetauscht'):";
+        const fixNote = prompt(promptMsg);
         if (!fixNote) return;
 
         selectedArchiveItem.results[index].status = 'KORRIGIERT';
@@ -1020,7 +1260,7 @@
         selectedArchiveItem.okCount = okCount;
         selectedArchiveItem.nokCount = nokCount;
         selectedArchiveItem.successRate = successRate;
-        selectedArchiveItem.status = nokCount === 0 ? "FREIGEGEBEN" : "NICHT FREIGEGEBEN";
+        selectedArchiveItem.status = nokCount === 0 ? translations[currentLang].statusApproved : translations[currentLang].statusNotApproved;
 
         saveArchiveToFirebase();
         viewArchiveDetail(selectedArchiveItem.id);
@@ -1031,7 +1271,10 @@
         const inspector = document.getElementById('inspector-name').value.trim();
         const date = document.getElementById('inspection-date').value;
 
-        if (!worker || !inspector) { alert("Bitte Monteur und Prüfer eintragen."); return; }
+        if (!worker || !inspector) { 
+            alert(currentLang === 'fr' ? "Veuillez saisir le nom de l'employé et du contrôleur." : "Bitte Monteur und Prüfer eintragen."); 
+            return; 
+        }
 
         const archivedItem = {
             ...currentOrder,
@@ -1052,7 +1295,7 @@
             saveOrdersToFirebase();
         }
 
-        alert("Prüfung gespeichert und archiviert!");
+        alert(currentLang === 'fr' ? "Contrôle enregistré et archivé !" : "Prüfung gespeichert und archiviert!");
         goToScreen('screen-home');
     }
 
@@ -1063,7 +1306,7 @@
         const dataToRender = filteredData || window.archive;
 
         if (dataToRender.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color: var(--gray);">Keine passenden Protokolle gefunden.</p>';
+            container.innerHTML = `<p style="text-align:center; color: var(--gray);">${currentLang === 'fr' ? 'Aucun rapport trouvé.' : 'Keine passenden Protokolle gefunden.'}</p>`;
             return;
         }
 
@@ -1071,7 +1314,7 @@
             const div = document.createElement('div');
             div.className = 'order-card';
             
-            const isOk = item.status === 'FREIGEGEBEN';
+            const isOk = item.status === 'FREIGEGEBEN' || item.status === 'VALIDÉ';
             const rate = item.successRate !== undefined ? item.successRate : (isOk ? 100 : 0);
             
             let badgeClass = 'badge-green';
@@ -1081,17 +1324,17 @@
             div.innerHTML = `
                 <div style="flex: 1; margin-right: 10px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong>Auftrag-Nr: ${item.orderNo} - ${item.type}</strong>
+                        <strong>N°: ${item.orderNo} - ${item.type}</strong>
                         <span class="badge-status ${badgeClass}">${rate}% OK</span>
                     </div>
-                    <small style="color: var(--gray);">SN: ${item.serial} | Datum: ${item.date} | Monteur: ${item.worker}</small>
+                    <small style="color: var(--gray);">SN: ${item.serial} | Date: ${item.date} | ${item.worker}</small>
                     <div class="progress-bar-container" style="height: 5px; margin: 6px 0 0 0;">
                         <div class="progress-bar" style="width: ${rate}%; background-color: ${rate === 100 ? 'var(--green)' : (rate >= 80 ? 'var(--yellow)' : 'var(--red)')};"></div>
                     </div>
                 </div>
                 <div style="display: flex; gap: 6px; flex-direction: column;">
                     <button class="btn btn-outline" style="width: auto; padding: 6px 10px; white-space: nowrap;" onclick="viewArchiveDetail(${item.id})">Details 👁️</button>
-                    <button class="btn btn-outline-red" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onclick="deleteArchiveItem(${item.id})">🗑️ Löschen</button>
+                    <button class="btn btn-outline-red" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onclick="deleteArchiveItem(${item.id})">🗑️</button>
                 </div>
             `;
             container.appendChild(div);
@@ -1099,7 +1342,8 @@
     }
 
     function deleteArchiveItem(archiveId) {
-        if (confirm("Möchtest du dieses Protokoll wirklich aus dem Archiv löschen?")) {
+        const msg = currentLang === 'fr' ? "Voulez-vous vraiment supprimer ce procès-verbal de l'archive ?" : "Möchtest du dieses Protokoll wirklich aus dem Archiv löschen?";
+        if (confirm(msg)) {
             window.archive = window.archive.filter(a => a.id !== archiveId);
             if (window.db && window.dbRemove && window.dbRef) {
                 window.dbRemove(window.dbRef(window.db, 'archive/' + archiveId));
@@ -1112,14 +1356,15 @@
 
     function deleteArchiveDetail() {
         if (!selectedArchiveItem) return;
-        if (confirm(`Soll das Protokoll für Auftrag ${selectedArchiveItem.orderNo} (SN: ${selectedArchiveItem.serial}) wirklich dauerhaft gelöscht werden?`)) {
+        const msg = currentLang === 'fr' ? `Supprimer définitivement le rapport pour la commande ${selectedArchiveItem.orderNo} ?` : `Soll das Protokoll für Auftrag ${selectedArchiveItem.orderNo} dauerhaft gelöscht werden?`;
+        if (confirm(msg)) {
             window.archive = window.archive.filter(a => a.id !== selectedArchiveItem.id);
             if (window.db && window.dbRemove && window.dbRef) {
                 window.dbRemove(window.dbRef(window.db, 'archive/' + selectedArchiveItem.id));
             } else {
                 saveArchiveToFirebase();
             }
-            alert("Protokoll gelöscht!");
+            alert(currentLang === 'fr' ? "Rapport supprimé !" : "Protokoll gelöscht!");
             goToScreen('screen-archive');
         }
     }
@@ -1147,31 +1392,34 @@
         selectedArchiveItem = window.archive.find(a => a.id === id);
         if (!selectedArchiveItem) return;
 
-        const isOk = selectedArchiveItem.status === 'FREIGEGEBEN';
+        const isOk = selectedArchiveItem.status === 'FREIGEGEBEN' || selectedArchiveItem.status === 'VALIDÉ';
         const rate = selectedArchiveItem.successRate !== undefined ? selectedArchiveItem.successRate : (isOk ? 100 : 0);
         const banner = document.getElementById('archive-detail-banner');
         
-        banner.innerText = isOk ? `🟢 MASCHINE FREIGEGEBEN (${rate}% OK)` : `🔴 MASCHINE NICHT FREIGEGEBEN (${rate}% OK)`;
+        const statusApp = translations[currentLang].statusApproved;
+        const statusNotApp = translations[currentLang].statusNotApproved;
+
+        banner.innerText = isOk ? `🟢 ${statusApp} (${rate}% OK)` : `🔴 ${statusNotApp} (${rate}% OK)`;
         banner.style.backgroundColor = isOk ? "var(--green)" : "var(--red)";
 
         let barColor = rate === 100 ? 'var(--green)' : (rate >= 80 ? 'var(--yellow)' : 'var(--red)');
 
         document.getElementById('archive-detail-info').innerHTML = `
-            <b>Auftrags-Nr:</b> ${selectedArchiveItem.orderNo}<br>
-            <b>Typ:</b> ${selectedArchiveItem.type} | <b>SN:</b> ${selectedArchiveItem.serial}<br>
-            <b>Spezifikation:</b> Rohrlänge ${selectedArchiveItem.pipe} | Achse: ${selectedArchiveItem.axis} | Motor: ${selectedArchiveItem.kw}<br>
-            ${selectedArchiveItem.comment ? `<b>Hinweis:</b> ${selectedArchiveItem.comment}<br>` : ''}
+            <b>N°:</b> ${selectedArchiveItem.orderNo}<br>
+            <b>Type:</b> ${selectedArchiveItem.type} | <b>SN:</b> ${selectedArchiveItem.serial}<br>
+            <b>Spec:</b> Tube ${selectedArchiveItem.pipe} | Axe: ${selectedArchiveItem.axis} | Moteur: ${selectedArchiveItem.kw}<br>
+            ${selectedArchiveItem.comment ? `<b>Note:</b> ${selectedArchiveItem.comment}<br>` : ''}
             <hr style="margin: 8px 0; border: 0.5px solid var(--border-color);">
-            <b>Monteur:</b> ${selectedArchiveItem.worker} | <b>Prüfer:</b> ${selectedArchiveItem.inspector}<br>
-            <b>Datum:</b> ${selectedArchiveItem.date}<br>
-            <b>Erfolgsquote:</b> ${rate}% OK (${selectedArchiveItem.okCount || '-'} von ${selectedArchiveItem.totalCount || '-'} OK)
+            <b>Employé/Monteur:</b> ${selectedArchiveItem.worker} | <b>Contrôleur:</b> ${selectedArchiveItem.inspector}<br>
+            <b>Date:</b> ${selectedArchiveItem.date}<br>
+            <b>Taux:</b> ${rate}% OK (${selectedArchiveItem.okCount || '-'} / ${selectedArchiveItem.totalCount || '-'} OK)
             <div class="progress-bar-container" style="height: 6px; margin-top: 6px;">
                 <div class="progress-bar" style="width: ${rate}%; background-color: ${barColor};"></div>
             </div>
         `;
 
         const resultsContainer = document.getElementById('archive-detail-results');
-        resultsContainer.innerHTML = '<h4>Prüfpunkte:</h4>';
+        resultsContainer.innerHTML = '<h4>Points de contrôle / Prüfpunkte:</h4>';
 
         selectedArchiveItem.results.forEach((r, idx) => {
             const itemDiv = document.createElement('div');
@@ -1179,14 +1427,14 @@
             itemDiv.className = `result-item ${statusClass}`;
 
             let statusText = r.status;
-            if (r.status === 'KORRIGIERT') statusText = '🟢 KORRIGIERT (OK)';
+            if (r.status === 'KORRIGIERT') statusText = '🟢 KORRIGIERT / CORRIGÉ (OK)';
 
             itemDiv.innerHTML = `
                 <div><strong>${idx + 1}. ${r.item}</strong> - <span>${statusText}</span></div>
-                ${r.note ? `<small style="color: var(--primary); margin-top: 2px;">💬 Kommentar: ${r.note}</small>` : ''}
-                ${r.remark ? `<small style="color: var(--red); margin-top: 3px;">⚠️ Mangel: ${r.remark}</small>` : ''}
-                ${r.fixNote ? `<small style="color: var(--green); margin-top: 3px;">✅ Nachbesserung: ${r.fixNote}</small>` : ''}
-                ${r.status === 'NOK' ? `<button class="btn-fix" onclick="fixItemArchive(${idx})">🛠️ Mangel beheben & freigeben</button>` : ''}
+                ${r.note ? `<small style="color: var(--primary); margin-top: 2px;">💬 ${r.note}</small>` : ''}
+                ${r.remark ? `<small style="color: var(--red); margin-top: 3px;">⚠️ ${r.remark}</small>` : ''}
+                ${r.fixNote ? `<small style="color: var(--green); margin-top: 3px;">✅ ${r.fixNote}</small>` : ''}
+                ${r.status === 'NOK' ? `<button class="btn-fix" onclick="fixItemArchive(${idx})">🛠️ ${currentLang === 'fr' ? 'Corriger & Valider' : 'Mangel beheben & freigeben'}</button>` : ''}
             `;
             resultsContainer.appendChild(itemDiv);
         });
@@ -1204,9 +1452,9 @@
     }
 
     function appendPrintDetails(summaryId, workerId, inspectorId, dateId) {
-        const worker = document.getElementById(workerId).value.trim() || 'Nicht angegeben';
-        const inspector = document.getElementById(inspectorId).value.trim() || 'Nicht angegeben';
-        const date = document.getElementById(dateId).value || 'Nicht angegeben';
+        const worker = document.getElementById(workerId).value.trim() || '-';
+        const inspector = document.getElementById(inspectorId).value.trim() || '-';
+        const date = document.getElementById(dateId).value || '-';
 
         let printDetails = document.getElementById('print-summary-extension');
         if (!printDetails) {
@@ -1217,15 +1465,15 @@
 
         printDetails.innerHTML = `
             <hr style="margin: 8px 0; border: 0.5px solid var(--border-color);">
-            <b>👷 Monteur:</b> ${worker}<br>
-            <b>👤 Endkontrolle:</b> ${inspector}<br>
-            <b>📅 Datum:</b> ${date}
+            <b>👷 Monteur / Employé:</b> ${worker}<br>
+            <b>👤 Endkontrolle / Contrôleur:</b> ${inspector}<br>
+            <b>📅 Datum / Date:</b> ${date}
         `;
     }
 
     function sendMailCurrent() {
-        const worker = document.getElementById('worker-name').value.trim() || 'Unbekannt';
-        const inspector = document.getElementById('inspector-name').value.trim() || 'Unbekannt';
+        const worker = document.getElementById('worker-name').value.trim() || 'Inconnu';
+        const inspector = document.getElementById('inspector-name').value.trim() || 'Inconnu';
         const date = document.getElementById('inspection-date').value;
 
         generateAndSendMail(currentOrder, inspectionResults, worker, inspector, date);
@@ -1243,23 +1491,23 @@
     }
 
     function generateAndSendMail(order, results, worker, inspector, date) {
-        const rate = order.successRate !== undefined ? order.successRate : (order.status === 'FREIGEGEBEN' ? 100 : 0);
-        const subject = encodeURIComponent(`Prüfprotokoll Auftr-Nr: ${order.orderNo} (${rate}% OK): ${order.type} - SN: ${order.serial}`);
+        const rate = order.successRate !== undefined ? order.successRate : (order.status === 'FREIGEGEBEN' || order.status === 'VALIDÉ' ? 100 : 0);
+        const subject = encodeURIComponent(`Prüfprotokoll / Rapport N°: ${order.orderNo} (${rate}% OK): ${order.type} - SN: ${order.serial}`);
         
-        let body = `PRÜFPROTOKOLL MASCHINENPRÜFUNG\n-----------------------------------\n`;
-        body += `Auftrags-Nr: ${order.orderNo}\n`;
-        body += `Typ: ${order.type}\nSeriennummer: ${order.serial}\n`;
-        body += `Rohrlänge: ${order.pipe}\nAchse: ${order.axis}\nMotor: ${order.kw}\n`;
-        if (order.comment) body += `Werkstatt-Hinweis: ${order.comment}\n`;
-        body += `Monteur: ${worker}\nPrüfer: ${inspector}\nDatum: ${date}\n`;
-        body += `Ergebnis: ${order.status} (${rate}% OK)\n\nPRÜFERGEBNISSE:\n`;
+        let body = `PRÜFPROTOKOLL / RAPPORT DE CONTRÔLE\n-----------------------------------\n`;
+        body += `Auftrags-Nr / N° Commande: ${order.orderNo}\n`;
+        body += `Typ / Type: ${order.type}\nSeriennummer / N° Série: ${order.serial}\n`;
+        body += `Rohrlänge / Tube: ${order.pipe}\nAchse / Axe: ${order.axis}\nMotor / Moteur: ${order.kw}\n`;
+        if (order.comment) body += `Hinweis / Note: ${order.comment}\n`;
+        body += `Monteur / Employé: ${worker}\nPrüfer / Contrôleur: ${inspector}\nDatum / Date: ${date}\n`;
+        body += `Ergebnis / Résultat: ${order.status} (${rate}% OK)\n\nDETAILS:\n`;
 
         results.forEach((r, i) => {
             if (!r) return;
             let line = `${i+1}. ${r.item}: ${r.status}`;
-            if (r.note) line += ` (Hinweis: ${r.note})`;
-            if (r.remark) line += ` (Mangel: ${r.remark})`;
-            if (r.fixNote) line += ` [Nachbesserung: ${r.fixNote}]`;
+            if (r.note) line += ` (Note: ${r.note})`;
+            if (r.remark) line += ` (Défaut: ${r.remark})`;
+            if (r.fixNote) line += ` [Correction: ${r.fixNote}]`;
             body += line + `\n`;
         });
 
