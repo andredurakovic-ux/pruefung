@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -234,6 +231,16 @@
         .badge-yellow { background-color: var(--yellow); }
         .badge-red { background-color: var(--red); }
         .badge-blue { background-color: var(--primary); }
+
+        /* Blink-Animation für 100% Status */
+        .blink-status {
+            animation: pulse-blink 1.2s infinite alternate;
+        }
+
+        @keyframes pulse-blink {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.4; transform: scale(0.98); }
+        }
 
         .result-list {
             margin-top: 10px;
@@ -797,7 +804,11 @@
             if (current > 0 && current < total) {
                 statusBadge = `<span class="badge-status badge-yellow">IN BEARBEITUNG (${percent}%)</span>`;
             } else if (current >= total && total > 0) {
-                statusBadge = `<span class="badge-status badge-green">PRÜFUNG BEENDET</span>`;
+                if (nokCount > 0) {
+                    statusBadge = `<span class="badge-status badge-red blink-status">⚠️ 100% ERREICHT (Mängel offen)</span>`;
+                } else {
+                    statusBadge = `<span class="badge-status badge-green blink-status">✨ 100% ERREICHT (Fertig!)</span>`;
+                }
             }
 
             let nokBadge = nokCount > 0 ? `<span class="badge-status badge-red" style="margin-left: 4px;">🔴 ${nokCount} Mangel</span>` : '';
@@ -855,11 +866,15 @@
             const nokItems = results.filter(r => r && r.status === 'NOK');
             const nokCount = nokItems.length;
 
-            let statusBadge = `<span class="badge-status badge-blue">BEREIT</span>`;
+            let statusBadge = `<span class="badge-status badge-blue">OFFEN</span>`;
             if (current > 0 && current < total) {
                 statusBadge = `<span class="badge-status badge-yellow">IN BEARBEITUNG (${percent}%)</span>`;
             } else if (current >= total && total > 0) {
-                statusBadge = `<span class="badge-status badge-green">PRÜFUNG BEENDET</span>`;
+                if (nokCount > 0) {
+                    statusBadge = `<span class="badge-status badge-red blink-status">⚠️ 100% ERREICHT (Mängel offen)</span>`;
+                } else {
+                    statusBadge = `<span class="badge-status badge-green blink-status">✨ 100% ERREICHT (Bereit für Endkontrolle)</span>`;
+                }
             }
 
             let nokBadge = nokCount > 0 ? `<span class="badge-status badge-red" style="margin-left: 4px;">🔴 ${nokCount} Mangel</span>` : '';
@@ -887,6 +902,13 @@
                         ${o.liveNote ? `<span style="color: #1d4ed8; font-weight: bold; font-size: 0.9rem;">💬 Monteur: "${o.liveNote}"</span>` : `<span style="color: var(--gray); font-style: italic;">(Kein Live-Kommentar eingetragen)</span>`}
                     </div>
                 `;
+            } else {
+                liveStatusHtml = `
+                    <div style="margin-top: 8px; padding: 8px 10px; background-color: #ecfdf5; border-left: 4px solid var(--green); border-radius: 4px; font-size: 0.85rem;">
+                        <b style="color: var(--green);">🎉 Alle Prüfpunkte von der Werkstatt abgehakt!</b><br>
+                        <span style="color: var(--gray);">Das Protokoll wartet jetzt auf Endkontrolle & Archivierung durch den Prüfer.</span>
+                    </div>
+                `;
             }
 
             div.innerHTML = `
@@ -905,7 +927,7 @@
                             <span>${current} / ${total} (${successRate}% OK)</span>
                         </div>
                         <div class="progress-bar-container" style="height: 8px;">
-                            <div class="progress-bar" style="width: ${percent}%; background-color: ${nokCount > 0 ? 'var(--yellow)' : 'var(--primary)'};"></div>
+                            <div class="progress-bar" style="width: ${percent}%; background-color: ${nokCount > 0 ? 'var(--yellow)' : 'var(--green)'};"></div>
                         </div>
                     </div>
 
