@@ -1,1 +1,1504 @@
 
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digitale Maschinenprüfung - Kontrollliste</title>
+    <!-- QR Scanner Bibliothek (Html5Qrcode) -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-color: #1a202c;
+            --border-color: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --green: #10b981;
+            --green-hover: #059669;
+            --yellow: #d97706;
+            --yellow-bg: #fef3c7;
+            --red: #ef4444;
+            --red-hover: #dc2626;
+            --gray: #6b7280;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 650px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 { font-size: 1.3rem; }
+        h2 { font-size: 1.2rem; margin-bottom: 10px; }
+
+        .lang-switch {
+            display: flex;
+            gap: 4px;
+        }
+
+        .lang-btn {
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .lang-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .screen.active { display: flex; }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn-green { background-color: var(--green); }
+        .btn-green:hover { background-color: var(--green-hover); }
+        .btn-red { background-color: var(--red); }
+        .btn-red:hover { background-color: var(--red-hover); }
+        .btn-secondary { background-color: var(--gray); }
+        .btn-outline { background-color: transparent; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-outline-red { background-color: transparent; color: var(--red); border: 2px solid var(--red); }
+        .btn-fix { background-color: var(--yellow); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+
+        .btn-edit-au {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            margin-left: 6px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .btn-edit-au:hover {
+            background: #e2e8f0;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        input, select, textarea {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        .checkbox-group {
+            border: 1px solid var(--border-color);
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .bg-section-title {
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            color: var(--primary);
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 3px;
+        }
+
+        .info-card {
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e2e8f0;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .check-item-card {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #fff;
+        }
+
+        .live-note-box {
+            background: #eff6ff;
+            border: 2px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-buttons .btn { flex: 1; padding: 18px; font-size: 1.2rem; }
+
+        .order-card {
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+        }
+
+        .badge-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: white;
+        }
+        .badge-green { background-color: var(--green); }
+        .badge-yellow { background-color: var(--yellow); }
+        .badge-red { background-color: var(--red); }
+        .badge-blue { background-color: var(--primary); }
+
+        .blink-status {
+            animation: pulse-blink 1.2s infinite alternate;
+        }
+
+        @keyframes pulse-blink {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.4; transform: scale(0.98); }
+        }
+
+        .result-list {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .result-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .result-item.ok { background-color: #ecfdf5; border-left: 4px solid var(--green); }
+        .result-item.fixed { background-color: #fef3c7; border-left: 4px solid var(--yellow); }
+        .result-item.nok { background-color: #fef2f2; border-left: 4px solid var(--red); }
+
+        #qr-reader {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px dashed var(--primary);
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .app-container { box-shadow: none; border: none; max-width: 100%; width: 100%; }
+            header, .btn, input, select, textarea, .progress-bar-container, .action-buttons, .btn-fix, .btn-outline-red, .btn-edit-au, .lang-switch { display: none !important; }
+            .screen { display: none !important; }
+            #screen-archive-detail.active, #screen-final.active { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>📋 Maschinenprüfung Kontrollliste</h1>
+        <div class="lang-switch">
+            <button class="lang-btn active" id="btn-de" onclick="setLanguage('de')">🇩🇪 DE</button>
+            <button class="lang-btn" id="btn-fr" onclick="setLanguage('fr')">🇫🇷 FR</button>
+        </div>
+    </header>
+
+    <!-- 1. HAUPTMENÜ -->
+    <div id="screen-home" class="screen active">
+        <button class="btn btn-outline" style="background-color: #eff6ff;" onclick="openScanner()">📷 QR-Code scannen (Etikett)</button>
+        <button class="btn" onclick="openNewOrderScreen()">➕ Prüfauftrag anlegen / ERP Daten eingeben</button>
+        <button class="btn btn-green" onclick="goToScreen('screen-orders')">🛠️ Werkstatt / Offene Prüfungen</button>
+        <button class="btn btn-outline" onclick="goToScreen('screen-office-live')">🖥️ Büro / Live Dashboard (Nur Lesen)</button>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-archive')">📜 Archiv / Abgeschlossene Protokolle</button>
+    </div>
+
+    <!-- SCANNER MODAL / SCREEN -->
+    <div id="screen-scanner" class="screen">
+        <h2>📷 Etikett mit QR-Code scannen</h2>
+        <div id="qr-reader"></div>
+        <p style="font-size: 0.85rem; color: var(--gray); text-align: center;">Halte die Kamera über den QR-Code des Maschinen-Etiketts.</p>
+        <button class="btn btn-secondary" onclick="closeScanner()">Abbrechen</button>
+    </div>
+
+    <!-- BÜRO LIVE-DASHBOARD -->
+    <div id="screen-office-live" class="screen">
+        <h2>🖥️ Büro Live-Dashboard (Echtzeit-Monitoren)</h2>
+        <p style="font-size: 0.85rem; color: var(--gray);">Hier wird der Live-Fortschritt & Wartezustände der Werkstatt automatisch aktualisiert.</p>
+        <div id="office-live-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;">Zurück zum Hauptmenü</button>
+    </div>
+
+    <!-- 2. AUFTRAG ANLEGEN -->
+    <div id="screen-new-order" class="screen">
+        <h2>ERP-Daten & Spezifikationen eingeben</h2>
+        <button class="btn btn-outline" style="padding: 8px; font-size: 0.9rem;" onclick="openScanner()">📷 QR-Code scannen</button>
+        
+        <div class="form-group">
+            <label for="order-customer">👤 Kundenname</label>
+            <input type="text" id="order-customer" placeholder="z. B. Max Mustermann / Firma GmbH">
+        </div>
+        <div class="form-group">
+            <label for="order-no">📌 Auftragsnummer (AU)</label>
+            <input type="text" id="order-no" placeholder="z. B. AU-2608B0526">
+        </div>
+        <div class="form-group">
+            <label for="order-type">Maschinentyp / Modell</label>
+            <input type="text" id="order-type" placeholder="z. B. SLE">
+        </div>
+        <div class="form-group">
+            <label for="order-serial">Seriennummer</label>
+            <input type="text" id="order-serial" placeholder="z. B. SLE0001">
+        </div>
+
+        <div class="form-group">
+            <label for="order-pipe">Rohrlänge (Händische Eingabe)</label>
+            <input type="text" id="order-pipe" placeholder="z. B. 435 cm oder 4,25 m">
+        </div>
+        <div class="form-group">
+            <label for="order-axis">Achse / Spezifikation</label>
+            <input type="text" id="order-axis" placeholder="z. B. Achse Typ A-400">
+        </div>
+        <div class="form-group">
+            <label for="order-kw">Motor-Leistung / Typ</label>
+            <input type="text" id="order-kw" placeholder="z. B. 5.5 kW">
+        </div>
+
+        <div class="form-group">
+            <label for="order-comment">💬 Besondere Hinweise / Kommentar für Werkstatt</label>
+            <textarea id="order-comment" rows="2" placeholder="z. B. Sonderausstattung beachten..."></textarea>
+        </div>
+
+        <hr style="border: 0.5px solid var(--border-color); margin: 5px 0;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label><b>Prüfpunkte individuell auswählen:</b></label>
+            <div style="display: flex; gap: 5px;">
+                <button type="button" class="btn-outline" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 4px;" onclick="toggleAllCheckboxes(true)">Alle an</button>
+                <button type="button" class="btn-outline" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; color: var(--red); border-color: var(--red);" onclick="toggleAllCheckboxes(false)">Alle aus</button>
+            </div>
+        </div>
+
+        <div id="checklist-selection-container" style="max-height: 300px; overflow-y: auto; padding-right: 5px; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: #fafafa;"></div>
+
+        <button class="btn btn-green" onclick="createOrder()">Prüfauftrag für Werkstatt freigeben ▶</button>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-home')">Abbrechen</button>
+    </div>
+
+    <!-- 3. AUFTRAGSLISTE WERKSTATT -->
+    <div id="screen-orders" class="screen">
+        <h2>🛠️ Offene Prüfungen (Werkstatt)</h2>
+        <div id="orders-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;">Zurück</button>
+    </div>
+
+    <!-- 4. PRÜFUNG DURCHFÜHREN -->
+    <div id="screen-inspection" class="screen">
+        <div class="info-card" id="inspection-info"></div>
+        
+        <div>
+            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                <span>Fortschritt</span>
+                <span id="progress-text">0 / 0</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- PRÜFPUNKT KARTE -->
+        <div class="check-item-card">
+            <h3 id="check-step">Prüfpunkt</h3>
+            <p id="check-text" style="font-size: 1.2rem; font-weight: bold; margin-top: 10px;">-</p>
+        </div>
+
+        <!-- LIVE-KOMMENTARFELD DIREKT DARUNTER -->
+        <div class="form-group live-note-box">
+            <label for="step-note-text" style="color: #1e40af; font-weight: bold;">💬 Kommentar / Warte-Hinweis für diesen Punkt (Live im Büro):</label>
+            <input type="text" id="step-note-text" placeholder="z. B. 'Warte auf Kran', 'Teil wird geholt', 'Wartet auf Freigabe'..." oninput="saveCurrentNoteLive()">
+        </div>
+
+        <div id="remark-container" class="form-group" style="display: none;">
+            <label for="remark-text" style="color: var(--red);">🔴 Mangel beschreiben:</label>
+            <textarea id="remark-text" placeholder="Beschreibung des Fehlerbildes..."></textarea>
+            <button class="btn btn-red" onclick="confirmNOK()">Mangel speichern & Weiter</button>
+        </div>
+
+        <!-- OK / NICHT OK BUTTONS -->
+        <div class="action-buttons" id="main-actions">
+            <button class="btn btn-green" onclick="handleCheck(true)">🟢 OK</button>
+            <button class="btn btn-red" onclick="showRemarkInput()">🔴 NICHT OK</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 5px;">
+            <button class="btn btn-outline" id="btn-prev-step" onclick="prevStep()" style="flex: 1; padding: 10px; font-size: 0.9rem;">↩️ Vorheriger Punkt</button>
+            <button class="btn btn-secondary" onclick="pauseInspection()" style="flex: 1; padding: 10px; font-size: 0.9rem;">⏸️ Später weiterprüfen</button>
+        </div>
+    </div>
+
+    <!-- 5. ENDKONTROLLE -->
+    <div id="screen-final" class="screen">
+        <h2>Endkontrolle & Abschluss</h2>
+        <div id="final-result-banner" style="text-align: center; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 1.2rem; color: white;"></div>
+
+        <div class="info-card" id="final-summary"></div>
+
+        <div class="result-list" id="final-results-list"></div>
+
+        <div class="form-group" style="margin-top: 15px;">
+            <label for="worker-name">👷 Mitarbeiter / Monteur</label>
+            <input type="text" id="worker-name" placeholder="Name des Monteurs">
+        </div>
+        <div class="form-group">
+            <label for="inspector-name">👤 Endkontrolle durchgeführt von</label>
+            <input type="text" id="inspector-name" placeholder="Name des Prüfers">
+        </div>
+        <div class="form-group">
+            <label for="inspection-date">📅 Datum</label>
+            <input type="date" id="inspection-date">
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button class="btn btn-outline" onclick="printFinalInspection()">🖨️ Drucken / PDF</button>
+            <button class="btn btn-outline" onclick="sendMailCurrent()">✉️ Mail senden</button>
+        </div>
+
+        <button class="btn btn-green" onclick="saveInspection()" style="margin-top: 10px;">Prüfung Speichern & Archivieren 💾</button>
+    </div>
+
+    <!-- 6. ARCHIV -->
+    <div id="screen-archive" class="screen">
+        <h2>📜 Archivierte Prüfprotokolle</h2>
+        
+        <div class="form-group">
+            <input type="text" id="archive-search" placeholder="🔍 Suche nach Kunde, AU, SN, Prüfer..." oninput="filterArchive()">
+        </div>
+
+        <div id="archive-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;">Zurück</button>
+    </div>
+
+    <!-- 7. ARCHIV DETAILANSICHT -->
+    <div id="screen-archive-detail" class="screen">
+        <h2>Prüfprotokoll Detailansicht</h2>
+        <div id="archive-detail-banner" style="text-align: center; padding: 12px; border-radius: 8px; font-weight: bold; color: white; margin-bottom: 10px;"></div>
+        <div class="info-card" id="archive-detail-info"></div>
+        <div class="result-list" id="archive-detail-results"></div>
+
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn btn-outline" onclick="printArchiveInspection()">🖨️ Drucken / PDF</button>
+            <button class="btn btn-outline" onclick="sendMailArchive()">✉️ Mail senden</button>
+        </div>
+        <button class="btn btn-red" onclick="deleteArchiveDetail()" style="margin-top: 10px;">🗑️ Dieses Protokoll unwiderruflich löschen</button>
+        <button class="btn btn-secondary" onclick="goToScreen('screen-archive')" style="margin-top: 5px;">Zurück zum Archiv</button>
+    </div>
+</div>
+
+<!-- FIREBASE SDK SKRIPTE (v10.8.0) -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, update, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "868388263677",
+        authDomain: "werkstatt-pruefung.firebaseapp.com",
+        databaseURL: "https://werkstatt-pruefung-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "werkstatt-pruefung",
+        storageBucket: "werkstatt-pruefung.appspot.com",
+        messagingSenderId: "868388263677",
+        appId: "1:868388263677:web:e70cd7c347986bb81a9094"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.db = db;
+    window.dbRef = ref;
+    window.dbSet = set;
+    window.dbUpdate = update;
+    window.dbRemove = remove;
+
+    onValue(ref(db, 'orders'), (snapshot) => {
+        const data = snapshot.val();
+        window.orders = data ? Object.values(data) : [];
+        const activeScreen = document.querySelector('.screen.active');
+        if (activeScreen && activeScreen.id === 'screen-orders') {
+            window.renderOrders();
+        }
+        if (activeScreen && activeScreen.id === 'screen-office-live') {
+            window.renderOfficeLive();
+        }
+    });
+
+    onValue(ref(db, 'archive'), (snapshot) => {
+        const data = snapshot.val();
+        window.archive = data ? Object.values(data) : [];
+        const activeScreen = document.querySelector('.screen.active');
+        if (activeScreen && activeScreen.id === 'screen-archive') {
+            window.renderArchive();
+        }
+    });
+</script>
+
+<script>
+    let currentLang = 'de';
+
+    const masterChecklistGrouped = [
+        {
+            groupName: { de: "Baugruppe 1: Basismontage", fr: "Groupe 1: Montage de base" },
+            items: [
+                { de: "Zwischenlager montiert", fr: "Palier intermédiaire monté" },
+                { de: "Zwischenlager geprüft", fr: "Palier intermédiaire contrôlé" },
+                { de: "Flanschlager festgezogen", fr: "Palier à bride serré" },
+                { de: "Madenschrauben an Flanschlager festgezogen", fr: "Vis sans tête du palier à bride serrées" },
+                { de: "Gleitlagerkopf angezogen", fr: "Tête de palier lisse serrée" },
+                { de: "Schmierleitung festgezogen", fr: "Conduite de graissage serrée" },
+                { de: "Öl eingesetzt / aufgefüllt", fr: "Huile ajoutée / remplie" }
+            ]
+        },
+        {
+            groupName: { de: "Baugruppe 2: Flügel, Ring & Gummis", fr: "Groupe 2: Pales, Anneau & Caoutchoucs" },
+            items: [
+                { de: "Ring montiert", fr: "Anneau monté" },
+                { de: "Flügel montiert", fr: "Pales montées" },
+                { de: "Flügel mit Kiloschlüssel festgezogen", fr: "Pales serrées à la clé dynamométrique" },
+                { de: "Ring exakt ausgerichtet", fr: "Anneau perfectly aligné" },
+                { de: "Gummis montiert", fr: "Caoutchoucs montés" }
+            ]
+        },
+        {
+            groupName: { de: "Baugruppe 3: Antrieb & Motorkiste", fr: "Groupe 3: Entraînement & Caisson moteur" },
+            items: [
+                { de: "Motorkiste montiert & festgezogen", fr: "Caisson moteur monté et serré" },
+                { de: "Motor montiert & festgezogen", fr: "Moteur monté et serré" },
+                { de: "Keilriemen auf Spannung & Sitz geprüft", fr: "Tension et assise de la courroie contrôlées" },
+                { de: "Riemenscheiben festgezogen", fr: "Poulies serrées" }
+            ]
+        },
+        {
+            groupName: { de: "Baugruppe 4: Elektrik & Testlauf", fr: "Groupe 4: Électricité & Test de fonctionnement" },
+            items: [
+                { de: "Schaltkasten auf Funktion getestet", fr: "Armoire électrique testée" },
+                { de: "Kabel & Anschlüsse geprüft", fr: "Câbles et raccordements contrôlés" },
+                { de: "Maschinen-Testlauf durchgeführt", fr: "Essai de fonctionnement de la machine effectué" }
+            ]
+        },
+        {
+            groupName: { de: "Baugruppe 5: Zubehör, Verpackung & Optik", fr: "Groupe 5: Accessoires, Emballage & Esthétique" },
+            items: [
+                { de: "Hauben montiert & festgezogen", fr: "Capots montés et serrés" },
+                { de: "Spanner verpackt / beigelegt", fr: "Tendeurs emballés / joints" },
+                { de: "Deckelsatz-System verpackt", fr: "Jeu de couvercles emballé" },
+                { de: "Schrauben für Deckelsatz beigelegt", fr: "Vis pour jeu de couvercles jointes" },
+                { de: "Typenschild geklebt", fr: "Plaque signalétique collée" },
+                { de: "Optische Sauberkeit der Maschine geprüft", fr: "Propreté visuelle de la machine contrôlée" },
+                { de: "Alle erforderlichen Aufkleber vorhanden & korrekt angebracht", fr: "Autocollants requis présents et bien posés" },
+                { de: "Maschine komplett eingepackt inkl. Flügel", fr: "Machine entièrement emballée, pales incluses" }
+            ]
+        }
+    ];
+
+    window.orders = [];
+    window.archive = [];
+    let currentOrder = null;
+    let activeChecklist = [];
+    let currentStep = 0;
+    let inspectionResults = [];
+    let selectedArchiveItem = null;
+    let html5QrCode = null;
+
+    window.onload = function() {
+        renderChecklistSelection();
+    };
+
+    function resetOrderForm() {
+        document.getElementById('order-customer').value = '';
+        document.getElementById('order-no').value = '';
+        document.getElementById('order-type').value = '';
+        document.getElementById('order-serial').value = '';
+        document.getElementById('order-pipe').value = '';
+        document.getElementById('order-axis').value = '';
+        document.getElementById('order-kw').value = '';
+        document.getElementById('order-comment').value = '';
+        toggleAllCheckboxes(true);
+    }
+
+    function openNewOrderScreen() {
+        resetOrderForm();
+        goToScreen('screen-new-order');
+    }
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        document.getElementById('btn-de').classList.toggle('active', lang === 'de');
+        document.getElementById('btn-fr').classList.toggle('active', lang === 'fr');
+
+        renderChecklistSelection();
+        updateStepView();
+    }
+
+    // --- QR SCANNER LOGIK ---
+    function openScanner() {
+        resetOrderForm();
+        goToScreen('screen-scanner');
+        html5QrCode = new Html5Qrcode("qr-reader");
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+            .catch(err => {
+                console.error("Kamera Fehler:", err);
+                alert("Kamera konnte nicht geöffnet werden. Bitte stelle sicher, dass die Kamera-Berechtigung erteilt wurde.");
+                goToScreen('screen-home');
+            });
+    }
+
+    function closeScanner() {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                html5QrCode.clear();
+                goToScreen('screen-home');
+            }).catch(() => goToScreen('screen-home'));
+        } else {
+            goToScreen('screen-home');
+        }
+    }
+
+    function onScanSuccess(decodedText) {
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => html5QrCode.clear());
+        }
+
+        resetOrderForm();
+
+        let kunde = "", nr = "", typ = "", sn = "", rohr = "", achse = "", kw = "";
+
+        if (decodedText.includes('?')) {
+            const urlParams = new URLSearchParams(decodedText.split('?')[1]);
+            kunde = urlParams.get('kunde') || urlParams.get('customer') || "";
+            nr = urlParams.get('nr') || urlParams.get('order') || "";
+            typ = urlParams.get('typ') || "";
+            sn = urlParams.get('sn') || "";
+            rohr = urlParams.get('rohr') || "";
+            achse = urlParams.get('achse') || "";
+            kw = urlParams.get('kw') || "";
+        } else if (decodedText.includes(';')) {
+            const parts = decodedText.split(';');
+            kunde = parts[0] || "";
+            nr = parts[1] || "";
+            typ = parts[2] || "";
+            sn = parts[3] || "";
+            rohr = parts[4] || "";
+            achse = parts[5] || "";
+            kw = parts[6] || "";
+        } else {
+            nr = decodedText.trim();
+        }
+
+        if (kunde) document.getElementById('order-customer').value = kunde;
+        document.getElementById('order-no').value = nr;
+        if (typ) document.getElementById('order-type').value = typ;
+        if (sn) document.getElementById('order-serial').value = sn;
+        if (rohr) document.getElementById('order-pipe').value = rohr;
+        if (achse) document.getElementById('order-axis').value = achse;
+        if (kw) document.getElementById('order-kw').value = kw;
+
+        alert("QR-Code erfolgreich gescannt!");
+        goToScreen('screen-new-order');
+    }
+
+    function updateSingleOrderInFirebase(orderObj) {
+        if (window.db && window.dbSet && window.dbRef) {
+            window.dbSet(window.dbRef(window.db, 'orders/' + orderObj.id), orderObj);
+        }
+    }
+
+    function editAuNumber(orderId, currentAu) {
+        const newAu = prompt("Neue Auftragsnummer (AU) eingeben:", currentAu);
+        if (newAu !== null && newAu.trim() !== "" && newAu.trim() !== currentAu) {
+            const updatedAu = newAu.trim();
+            
+            const targetOrder = window.orders.find(o => o.id === orderId);
+            if (targetOrder) {
+                targetOrder.orderNo = updatedAu;
+            }
+
+            if (window.db && window.dbUpdate && window.dbRef) {
+                window.dbUpdate(window.dbRef(window.db, 'orders/' + orderId), {
+                    orderNo: updatedAu
+                }).then(() => {
+                    renderOrders();
+                    renderOfficeLive();
+                }).catch(err => {
+                    alert("Fehler beim Aktualisieren der AU: " + err.message);
+                });
+            } else {
+                saveOrdersToFirebase();
+                renderOrders();
+                renderOfficeLive();
+            }
+        }
+    }
+
+    function saveOrdersToFirebase() {
+        if (window.db && window.dbSet && window.dbRef) {
+            const ordersObj = {};
+            window.orders.forEach(o => ordersObj[o.id] = o);
+            window.dbSet(window.dbRef(window.db, 'orders'), ordersObj);
+        }
+    }
+
+    function saveArchiveToFirebase() {
+        if (window.db && window.dbSet && window.dbRef) {
+            const archiveObj = {};
+            window.archive.forEach(a => archiveObj[a.id] = a);
+            window.dbSet(window.dbRef(window.db, 'archive'), archiveObj);
+        }
+    }
+
+    function renderChecklistSelection() {
+        const container = document.getElementById('checklist-selection-container');
+        container.innerHTML = '';
+
+        masterChecklistGrouped.forEach(group => {
+            const title = document.createElement('div');
+            title.className = 'bg-section-title';
+            title.innerText = group.groupName[currentLang] || group.groupName.de;
+            container.appendChild(title);
+
+            group.items.forEach(itemObj => {
+                const itemText = itemObj[currentLang] || itemObj.de;
+                const label = document.createElement('label');
+                label.className = 'checkbox-group';
+                label.innerHTML = `
+                    <input type="checkbox" class="single-check-item" data-de="${itemObj.de}" data-fr="${itemObj.fr}" checked>
+                    <div>${itemText}</div>
+                `;
+                container.appendChild(label);
+            });
+        });
+    }
+
+    function toggleAllCheckboxes(status) {
+        document.querySelectorAll('.single-check-item').forEach(cb => cb.checked = status);
+    }
+
+    function goToScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        if (screenId === 'screen-orders') renderOrders();
+        if (screenId === 'screen-office-live') renderOfficeLive();
+        if (screenId === 'screen-archive') {
+            document.getElementById('archive-search').value = '';
+            renderArchive();
+        }
+    }
+
+    function createOrder() {
+        const customer = document.getElementById('order-customer').value.trim() || '-';
+        const orderNo = document.getElementById('order-no').value.trim();
+        const type = document.getElementById('order-type').value.trim();
+        const serial = document.getElementById('order-serial').value.trim();
+
+        if (!orderNo || !type || !serial) {
+            alert("Bitte Auftragsnummer, Maschinentyp und Seriennummer eingeben.");
+            return;
+        }
+
+        const selectedItems = [];
+        document.querySelectorAll('.single-check-item:checked').forEach(cb => {
+            selectedItems.push({
+                de: cb.getAttribute('data-de'),
+                fr: cb.getAttribute('data-fr')
+            });
+        });
+
+        if (selectedItems.length === 0) {
+            alert("Bitte mindestens einen Prüfpunkt auswählen.");
+            return;
+        }
+
+        const newOrder = {
+            id: Date.now(),
+            customer: customer,
+            orderNo: orderNo,
+            type: type,
+            serial: serial,
+            pipe: document.getElementById('order-pipe').value.trim() || '-',
+            axis: document.getElementById('order-axis').value.trim() || '-',
+            kw: document.getElementById('order-kw').value.trim() || '-',
+            comment: document.getElementById('order-comment').value.trim() || '',
+            selectedItems: selectedItems,
+            status: 'OFFEN',
+            currentStep: 0,
+            inspectionResults: [],
+            liveNote: ''
+        };
+
+        window.orders.push(newOrder);
+        saveOrdersToFirebase();
+        alert('Prüfauftrag erfolgreich angelegt!');
+        
+        resetOrderForm();
+        goToScreen('screen-orders');
+    }
+
+    function renderOrders() {
+        const container = document.getElementById('orders-list');
+        container.innerHTML = '';
+
+        if (window.orders.length === 0) {
+            container.innerHTML = `<p style="text-align:center; color: var(--gray);">Keine offenen Prüfungen vorhanden.</p>`;
+            return;
+        }
+
+        window.orders.forEach(o => {
+            const div = document.createElement('div');
+            div.className = 'order-card';
+
+            const total = o.selectedItems ? o.selectedItems.length : 0;
+            const current = o.currentStep || 0;
+            const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+
+            const results = o.inspectionResults || [];
+            const okCount = results.filter(r => r && (r.status === 'OK' || r.status === 'KORRIGIERT')).length;
+            const successRate = total > 0 ? Math.round((okCount / total) * 100) : 0;
+
+            const nokCount = results.filter(r => r && r.status === 'NOK').length;
+
+            let statusBadge = `<span class="badge-status badge-blue">BEREIT</span>`;
+            if (current > 0 && current < total) {
+                statusBadge = `<span class="badge-status badge-yellow">IN BEARBEITUNG (${percent}%)</span>`;
+            } else if (current >= total && total > 0) {
+                if (nokCount > 0) {
+                    statusBadge = `<span class="badge-status badge-red blink-status">⚠️ 100% ERREICHT (Mängel offen)</span>`;
+                } else {
+                    statusBadge = `<span class="badge-status badge-green blink-status">✨ 100% ERREICHT (Fertig!)</span>`;
+                }
+            }
+
+            let nokBadge = nokCount > 0 ? `<span class="badge-status badge-red" style="margin-left: 4px;">🔴 ${nokCount} Mangel</span>` : '';
+
+            div.innerHTML = `
+                <div style="flex: 1; margin-right: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                        <div>
+                            <strong>Nr: ${o.orderNo}</strong>
+                            <button type="button" class="btn-edit-au" onclick="editAuNumber(${o.id}, '${o.orderNo}')" title="Auftragsnummer ändern">✏️</button>
+                        </div>
+                        <div>${statusBadge} ${nokBadge}</div>
+                    </div>
+                    ${o.customer && o.customer !== '-' ? `<small><b>Kunde:</b> ${o.customer}</small><br>` : ''}
+                    <strong>${o.type}</strong> (SN: ${o.serial})<br>
+                    <small>Rohr: ${o.pipe} | Achse: ${o.axis} | Motor: ${o.kw}</small>
+                    ${o.comment ? `<br><small style="color: var(--primary); font-style: italic;">💬 ${o.comment}</small>` : ''}
+                    
+                    <div style="margin-top: 8px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold; color: var(--gray);">
+                            <span>Live-Fortschritt:</span>
+                            <span>${current} / ${total} (${successRate}% OK)</span>
+                        </div>
+                        <div class="progress-bar-container" style="height: 6px;">
+                            <div class="progress-bar" style="width: ${percent}%; background-color: ${nokCount > 0 ? 'var(--yellow)' : 'var(--primary)'};"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px; flex-direction: column;">
+                    <button class="btn btn-green" style="width: auto; padding: 8px 12px; white-space: nowrap;" onclick="startInspection(${o.id})">${current > 0 ? 'Weiterprüfen ▶' : 'Prüfen ▶'}</button>
+                    <button class="btn btn-outline-red" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onclick="deleteOrder(${o.id})">🗑️</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function renderOfficeLive() {
+        const container = document.getElementById('office-live-list');
+        container.innerHTML = '';
+
+        if (window.orders.length === 0) {
+            container.innerHTML = `<p style="text-align:center; color: var(--gray);">Aktuell laufen keine Prüfungen in der Werkstatt.</p>`;
+            return;
+        }
+
+        window.orders.forEach(o => {
+            const div = document.createElement('div');
+            div.className = 'order-card';
+
+            const total = o.selectedItems ? o.selectedItems.length : 0;
+            const current = o.currentStep || 0;
+            const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+
+            const results = o.inspectionResults || [];
+            const okCount = results.filter(r => r && (r.status === 'OK' || r.status === 'KORRIGIERT')).length;
+            const successRate = total > 0 ? Math.round((okCount / total) * 100) : 0;
+
+            const nokItems = results.filter(r => r && r.status === 'NOK');
+            const nokCount = nokItems.length;
+
+            let statusBadge = `<span class="badge-status badge-blue">OFFEN</span>`;
+            if (current > 0 && current < total) {
+                statusBadge = `<span class="badge-status badge-yellow">IN BEARBEITUNG (${percent}%)</span>`;
+            } else if (current >= total && total > 0) {
+                if (nokCount > 0) {
+                    statusBadge = `<span class="badge-status badge-red blink-status">⚠️ 100% ERREICHT (Mängel offen)</span>`;
+                } else {
+                    statusBadge = `<span class="badge-status badge-green blink-status">✨ 100% ERREICHT (Bereit für Endkontrolle)</span>`;
+                }
+            }
+
+            let nokBadge = nokCount > 0 ? `<span class="badge-status badge-red" style="margin-left: 4px;">🔴 ${nokCount} Mangel</span>` : '';
+
+            let nokDetailsHtml = '';
+            if (nokCount > 0) {
+                nokDetailsHtml = `
+                    <div style="margin-top: 10px; padding: 8px 12px; background-color: #fef2f2; border-left: 4px solid var(--red); border-radius: 4px; font-size: 0.85rem;">
+                        <strong style="color: var(--red);">⚠️ Erfasste Mängel (Werkstatt):</strong>
+                        <ul style="margin: 4px 0 0 18px; color: #991b1b;">
+                            ${nokItems.map(item => `<li><b>${getItemText(item.item)}:</b>${item.remark}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            let currentPointObj = (o.selectedItems && o.selectedItems[current]) ? o.selectedItems[current] : null;
+            let currentPointName = currentPointObj ? getItemText(currentPointObj) : '-';
+
+            let liveStatusHtml = '';
+            if (current < total) {
+                liveStatusHtml = `
+                    <div style="margin-top: 8px; padding: 8px 10px; background-color: #eff6ff; border-left: 4px solid var(--primary); border-radius: 4px; font-size: 0.85rem;">
+                        <b>📍 Aktueller Prüfpunkt:</b> ${currentPointName}<br>
+                        ${o.liveNote ? `<span style="color: #1d4ed8; font-weight: bold; font-size: 0.9rem;">💬 Monteur: "${o.liveNote}"</span>` : `<span style="color: var(--gray); font-style: italic;">(Kein Live-Kommentar eingetragen)</span>`}
+                    </div>
+                `;
+            } else {
+                liveStatusHtml = `
+                    <div style="margin-top: 8px; padding: 8px 10px; background-color: #ecfdf5; border-left: 4px solid var(--green); border-radius: 4px; font-size: 0.85rem;">
+                        <b style="color: var(--green);">🎉 Alle Prüfpunkte von der Werkstatt abgehakt!</b><br>
+                        <span style="color: var(--gray);">Das Protokoll wartet jetzt auf Endkontrolle & Archivierung durch den Prüfer.</span>
+                    </div>
+                `;
+            }
+
+            div.innerHTML = `
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                        <div>
+                            <strong>Nr: ${o.orderNo}</strong>
+                            <button type="button" class="btn-edit-au" onclick="editAuNumber(${o.id}, '${o.orderNo}')" title="Auftragsnummer ändern">✏️</button>
+                        </div>
+                        <div>${statusBadge} ${nokBadge}</div>
+                    </div>
+                    ${o.customer && o.customer !== '-' ? `<small><b>Kunde:</b> ${o.customer}</small><br>` : ''}
+                    <strong>${o.type}</strong> (SN: ${o.serial})<br>
+                    <small>Rohr: ${o.pipe} | Achse: ${o.axis} | Motor: ${o.kw}</small>
+                    ${o.comment ? `<br><small style="color: var(--primary); font-style: italic;">💬 ${o.comment}</small>` : ''}
+                    
+                    <div style="margin-top: 8px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold; color: var(--gray);">
+                            <span>Live-Fortschritt Werkstatt:</span>
+                            <span>${current} / ${total} (${successRate}% OK)</span>
+                        </div>
+                        <div class="progress-bar-container" style="height: 8px;">
+                            <div class="progress-bar" style="width: ${percent}%; background-color: ${nokCount > 0 ? 'var(--yellow)' : 'var(--green)'};"></div>
+                        </div>
+                    </div>
+
+                    ${liveStatusHtml}
+                    ${nokDetailsHtml}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function getItemText(item) {
+        if (typeof item === 'string') return item;
+        if (typeof item === 'object' && item !== null) {
+            return item[currentLang] || item.de || '';
+        }
+        return '';
+    }
+
+    function deleteOrder(orderId) {
+        if (confirm("Möchtest du diesen Prüfauftrag wirklich löschen?")) {
+            window.orders = window.orders.filter(o => o.id !== orderId);
+            if (window.db && window.dbRemove && window.dbRef) {
+                window.dbRemove(window.dbRef(window.db, 'orders/' + orderId));
+            } else {
+                saveOrdersToFirebase();
+            }
+            renderOrders();
+        }
+    }
+
+    function startInspection(orderId) {
+        currentOrder = window.orders.find(o => o.id === orderId);
+        activeChecklist = [...currentOrder.selectedItems];
+
+        currentStep = currentOrder.currentStep || 0;
+        inspectionResults = currentOrder.inspectionResults || [];
+
+        document.getElementById('inspection-info').innerHTML = `
+            ${currentOrder.customer && currentOrder.customer !== '-' ? `<b>Kunde:</b> ${currentOrder.customer}<br>` : ''}
+            <b>Nr:</b> ${currentOrder.orderNo}<br>
+            <b>Typ:</b> ${currentOrder.type} | <b>SN:</b> ${currentOrder.serial}<br>
+            <b>Spezifikation:</b> Rohr: ${currentOrder.pipe} | Achse: ${currentOrder.axis} | Motor: ${currentOrder.kw}
+            ${currentOrder.comment ? `<br><b style="color: var(--primary);">💬 Hinweis:</b> ${currentOrder.comment}` : ''}
+        `;
+
+        updateStepView();
+        goToScreen('screen-inspection');
+    }
+
+    function updateStepView() {
+        const total = activeChecklist.length;
+
+        if (currentStep > total) currentStep = total;
+
+        const percent = total > 0 ? Math.round((currentStep / total) * 100) : 0;
+        document.getElementById('progress-text').innerText = `${currentStep} / ${total}`;
+        document.getElementById('progress-bar').style.width = `${percent}%`;
+
+        const prevBtn = document.getElementById('btn-prev-step');
+        if (prevBtn) {
+            prevBtn.style.opacity = currentStep > 0 ? "1" : "0.4";
+            prevBtn.style.pointerEvents = currentStep > 0 ? "auto" : "none";
+        }
+
+        if (currentOrder) {
+            currentOrder.currentStep = currentStep;
+            currentOrder.inspectionResults = inspectionResults;
+            updateSingleOrderInFirebase(currentOrder);
+        }
+
+        if (currentStep < total) {
+            document.getElementById('check-step').innerText = `Prüfpunkt ${currentStep + 1} von ${total}`;
+            document.getElementById('check-text').innerText = getItemText(activeChecklist[currentStep]);
+            document.getElementById('remark-container').style.display = 'none';
+            document.getElementById('main-actions').style.display = 'flex';
+            document.getElementById('remark-text').value = '';
+
+            const existingResult = inspectionResults[currentStep];
+            document.getElementById('step-note-text').value = (existingResult && existingResult.note) ? existingResult.note : (currentOrder.liveNote || '');
+        } else if (total > 0 && currentStep >= total) {
+            finishInspection();
+        }
+    }
+
+    function saveCurrentNoteLive() {
+        if (!currentOrder) return;
+        const note = document.getElementById('step-note-text').value;
+        currentOrder.liveNote = note;
+        updateSingleOrderInFirebase(currentOrder);
+    }
+
+    function handleCheck(isOk) {
+        const total = activeChecklist.length;
+        if (currentStep >= total) return;
+
+        const note = document.getElementById('step-note-text').value.trim();
+
+        if (isOk) {
+            inspectionResults[currentStep] = { 
+                item: activeChecklist[currentStep], 
+                status: 'OK', 
+                remark: '',
+                note: note
+            };
+            currentStep++;
+            currentOrder.liveNote = ''; 
+            updateStepView();
+        }
+    }
+
+    function showRemarkInput() {
+        document.getElementById('main-actions').style.display = 'none';
+        document.getElementById('remark-container').style.display = 'flex';
+    }
+
+    function confirmNOK() {
+        const total = activeChecklist.length;
+        if (currentStep >= total) return;
+
+        const remark = document.getElementById('remark-text').value.trim();
+        const note = document.getElementById('step-note-text').value.trim();
+
+        if (!remark) { 
+            alert("Bitte Mangel beschreiben."); 
+            return; 
+        }
+
+        inspectionResults[currentStep] = { 
+            item: activeChecklist[currentStep], 
+            status: 'NOK', 
+            remark: remark,
+            note: note
+        };
+        currentStep++;
+        currentOrder.liveNote = ''; 
+        updateStepView();
+    }
+
+    function prevStep() {
+        if (currentStep > 0) {
+            currentStep--;
+            updateStepView();
+        }
+    }
+
+    function pauseInspection() {
+        if (currentOrder) {
+            currentOrder.currentStep = currentStep;
+            currentOrder.inspectionResults = inspectionResults;
+            updateSingleOrderInFirebase(currentOrder);
+        }
+        goToScreen('screen-orders');
+    }
+
+    function finishInspection() {
+        renderFinalScreen();
+        document.getElementById('inspection-date').value = new Date().toISOString().split('T')[0];
+        goToScreen('screen-final');
+    }
+
+    function renderFinalScreen() {
+        const validResults = inspectionResults.filter(r => r !== undefined && r !== null);
+        const totalCount = validResults.length;
+        const okCount = validResults.filter(r => r.status === 'OK' || r.status === 'KORRIGIERT').length;
+        const nokCount = totalCount - okCount;
+        const successRate = totalCount > 0 ? Math.round((okCount / totalCount) * 100) : 0;
+
+        currentOrder.totalCount = totalCount;
+        currentOrder.okCount = okCount;
+        currentOrder.nokCount = nokCount;
+        currentOrder.successRate = successRate;
+
+        const hasErrors = nokCount > 0;
+        const banner = document.getElementById('final-result-banner');
+
+        currentOrder.status = hasErrors ? "NICHT FREIGEGEBEN" : "FREIGEGEBEN";
+
+        if (hasErrors) {
+            banner.innerText = `🔴 NICHT FREIGEGEBEN (${successRate}% OK)`;
+            banner.style.backgroundColor = "var(--red)";
+        } else {
+            banner.innerText = `🟢 FREIGEGEBEN (100% OK)`;
+            banner.style.backgroundColor = "var(--green)";
+        }
+
+        let barColor = successRate === 100 ? 'var(--green)' : (successRate >= 80 ? 'var(--yellow)' : 'var(--red)');
+
+        document.getElementById('final-summary').innerHTML = `
+            ${currentOrder.customer && currentOrder.customer !== '-' ? `<b>Kunde:</b> ${currentOrder.customer}<br>` : ''}
+            <b>Nr:</b> ${currentOrder.orderNo}<br>
+            <b>Typ:</b> ${currentOrder.type} | <b>SN:</b> ${currentOrder.serial}<br>
+            <b>Rohr:</b> ${currentOrder.pipe} | <b>Achse:</b> ${currentOrder.axis}<br>
+            <b>Motor:</b> ${currentOrder.kw}<br>
+            ${currentOrder.comment ? `<b>Hinweis:</b> ${currentOrder.comment}<br>` : ''}
+            <hr style="margin: 8px 0; border: 0.5px solid var(--border-color);">
+            <b>Ergebnis:</b> ${successRate}% OK (${okCount} / ${totalCount} OK)
+            <div class="progress-bar-container" style="height: 8px; margin-top: 6px;">
+                <div class="progress-bar" style="width: ${successRate}%; background-color: ${barColor};"></div>
+            </div>
+        `;
+
+        const resultsList = document.getElementById('final-results-list');
+        resultsList.innerHTML = `<h4>Prüfpunkte & Mängelbehebung:</h4>`;
+        
+        validResults.forEach((r, idx) => {
+            const itemDiv = document.createElement('div');
+            let statusClass = r.status === 'OK' ? 'ok' : (r.status === 'KORRIGIERT' ? 'fixed' : 'nok');
+            itemDiv.className = `result-item ${statusClass}`;
+            
+            let statusText = r.status;
+            if (r.status === 'KORRIGIERT') statusText = '🟢 KORRIGIERT (OK)';
+
+            itemDiv.innerHTML = `
+                <div><strong>${idx + 1}. ${getItemText(r.item)}</strong> - <span>${statusText}</span></div>
+                ${r.note ? `<small style="color: var(--primary); margin-top: 2px;">💬 ${r.note}</small>` : ''}
+                ${r.remark ? `<small style="color: var(--red); margin-top: 3px;">⚠️ ${r.remark}</small>` : ''}
+                ${r.fixNote ? `<small style="color: var(--green); margin-top: 3px;">✅ ${r.fixNote}</small>` : ''}
+                ${r.status === 'NOK' ? `<button class="btn-fix" onclick="fixItemCurrent(${idx})">🛠️ Mangel beheben & freigeben</button>` : ''}
+            `;
+            resultsList.appendChild(itemDiv);
+        });
+    }
+
+    function fixItemCurrent(index) {
+        const fixNote = prompt("Bitte beschreiben, wie der Mangel behoben wurde (z.B. 'Schraube nachgezogen'):");
+        if (!fixNote) return;
+
+        inspectionResults[index].status = 'KORRIGIERT';
+        inspectionResults[index].fixNote = fixNote;
+        renderFinalScreen();
+    }
+
+    function fixItemArchive(index) {
+        if (!selectedArchiveItem) return;
+        const fixNote = prompt("Bitte beschreiben, wie der Mangel behoben wurde (z.B. 'Teil ausgetauscht'):");
+        if (!fixNote) return;
+
+        selectedArchiveItem.results[index].status = 'KORRIGIERT';
+        selectedArchiveItem.results[index].fixNote = fixNote;
+
+        const totalCount = selectedArchiveItem.results.length;
+        const okCount = selectedArchiveItem.results.filter(r => r.status === 'OK' || r.status === 'KORRIGIERT').length;
+        const nokCount = totalCount - okCount;
+        const successRate = totalCount > 0 ? Math.round((okCount / totalCount) * 100) : 0;
+
+        selectedArchiveItem.okCount = okCount;
+        selectedArchiveItem.nokCount = nokCount;
+        selectedArchiveItem.successRate = successRate;
+        selectedArchiveItem.status = nokCount === 0 ? "FREIGEGEBEN" : "NICHT FREIGEGEBEN";
+
+        saveArchiveToFirebase();
+        viewArchiveDetail(selectedArchiveItem.id);
+    }
+
+    function saveInspection() {
+        const worker = document.getElementById('worker-name').value.trim();
+        const inspector = document.getElementById('inspector-name').value.trim();
+        const date = document.getElementById('inspection-date').value;
+
+        if (!worker || !inspector) { 
+            alert("Bitte Monteur und Prüfer eintragen."); 
+            return; 
+        }
+
+        const archivedItem = {
+            ...currentOrder,
+            worker,
+            inspector,
+            date,
+            results: inspectionResults,
+            completedAt: new Date().toLocaleString('de-DE')
+        };
+
+        window.archive.unshift(archivedItem);
+        saveArchiveToFirebase();
+
+        window.orders = window.orders.filter(o => o.id !== currentOrder.id);
+        if (window.db && window.dbRemove && window.dbRef) {
+            window.dbRemove(window.dbRef(window.db, 'orders/' + currentOrder.id));
+        } else {
+            saveOrdersToFirebase();
+        }
+
+        alert("Prüfung gespeichert und archiviert!");
+        goToScreen('screen-home');
+    }
+
+    function renderArchive(filteredData = null) {
+        const container = document.getElementById('archive-list');
+        container.innerHTML = '';
+
+        const dataToRender = filteredData || window.archive;
+
+        if (dataToRender.length === 0) {
+            container.innerHTML = `<p style="text-align:center; color: var(--gray);">Keine passenden Protokolle gefunden.</p>`;
+            return;
+        }
+
+        dataToRender.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'order-card';
+            
+            const isOk = item.status === 'FREIGEGEBEN';
+            const rate = item.successRate !== undefined ? item.successRate : (isOk ? 100 : 0);
+            
+            let badgeClass = 'badge-green';
+            if (rate < 100 && rate >= 80) badgeClass = 'badge-yellow';
+            if (rate < 80) badgeClass = 'badge-red';
+
+            div.innerHTML = `
+                <div style="flex: 1; margin-right: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong>Nr: ${item.orderNo} - ${item.type}</strong>
+                        <span class="badge-status ${badgeClass}">${rate}% OK</span>
+                    </div>
+                    ${item.customer && item.customer !== '-' ? `<small><b>Kunde:</b> ${item.customer}</small><br>` : ''}
+                    <small style="color: var(--gray);">SN: ${item.serial} | Datum: ${item.date} | Monteur: ${item.worker}</small>
+                    <div class="progress-bar-container" style="height: 5px; margin: 6px 0 0 0;">
+                        <div class="progress-bar" style="width: ${rate}%; background-color: ${rate === 100 ? 'var(--green)' : (rate >= 80 ? 'var(--yellow)' : 'var(--red)')};"></div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 6px; flex-direction: column;">
+                    <button class="btn btn-outline" style="width: auto; padding: 6px 10px; white-space: nowrap;" onclick="viewArchiveDetail(${item.id})">Details 👁️</button>
+                    <button class="btn btn-outline-red" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onclick="deleteArchiveItem(${item.id})">🗑️</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function deleteArchiveItem(archiveId) {
+        if (confirm("Möchtest du dieses Protokoll wirklich aus dem Archiv löschen?")) {
+            window.archive = window.archive.filter(a => a.id !== archiveId);
+            if (window.db && window.dbRemove && window.dbRef) {
+                window.dbRemove(window.dbRef(window.db, 'archive/' + archiveId));
+            } else {
+                saveArchiveToFirebase();
+            }
+            renderArchive();
+        }
+    }
+
+    function deleteArchiveDetail() {
+        if (!selectedArchiveItem) return;
+        if (confirm(`Soll das Protokoll für Auftrag ${selectedArchiveItem.orderNo} dauerhaft gelöscht werden?`)) {
+            window.archive = window.archive.filter(a => a.id !== selectedArchiveItem.id);
+            if (window.db && window.dbRemove && window.dbRef) {
+                window.dbRemove(window.dbRef(window.db, 'archive/' + selectedArchiveItem.id));
+            } else {
+                saveArchiveToFirebase();
+            }
+            alert("Protokoll gelöscht!");
+            goToScreen('screen-archive');
+        }
+    }
+
+    function filterArchive() {
+        const query = document.getElementById('archive-search').value.toLowerCase().trim();
+        if (!query) {
+            renderArchive(window.archive);
+            return;
+        }
+
+        const filtered = window.archive.filter(item => {
+            return (item.customer && item.customer.toLowerCase().includes(query)) ||
+                   (item.orderNo && item.orderNo.toLowerCase().includes(query)) ||
+                   (item.serial && item.serial.toLowerCase().includes(query)) ||
+                   (item.type && item.type.toLowerCase().includes(query)) ||
+                   (item.worker && item.worker.toLowerCase().includes(query)) ||
+                   (item.inspector && item.inspector.toLowerCase().includes(query)) ||
+                   (item.date && item.date.includes(query));
+        });
+
+        renderArchive(filtered);
+    }
+
+    function viewArchiveDetail(id) {
+        selectedArchiveItem = window.archive.find(a => a.id === id);
+        if (!selectedArchiveItem) return;
+
+        const isOk = selectedArchiveItem.status === 'FREIGEGEBEN';
+        const rate = selectedArchiveItem.successRate !== undefined ? selectedArchiveItem.successRate : (isOk ? 100 : 0);
+        const banner = document.getElementById('archive-detail-banner');
+
+        banner.innerText = isOk ? `🟢 FREIGEGEBEN (${rate}% OK)` : `🔴 NICHT FREIGEGEBEN (${rate}% OK)`;
+        banner.style.backgroundColor = isOk ? "var(--green)" : "var(--red)";
+
+        let barColor = rate === 100 ? 'var(--green)' : (rate >= 80 ? 'var(--yellow)' : 'var(--red)');
+
+        document.getElementById('archive-detail-info').innerHTML = `
+            ${selectedArchiveItem.customer && selectedArchiveItem.customer !== '-' ? `<b>Kunde:</b> ${selectedArchiveItem.customer}<br>` : ''}
+            <b>Nr:</b> ${selectedArchiveItem.orderNo}<br>
+            <b>Typ:</b> ${selectedArchiveItem.type} | <b>SN:</b> ${selectedArchiveItem.serial}<br>
+            <b>Spezifikation:</b> Rohr ${selectedArchiveItem.pipe} | Achse: ${selectedArchiveItem.axis} | Motor: ${selectedArchiveItem.kw}<br>
+            ${selectedArchiveItem.comment ? `<b>Hinweis:</b> ${selectedArchiveItem.comment}<br>` : ''}
+            <hr style="margin: 8px 0; border: 0.5px solid var(--border-color);">
+            <b>Monteur:</b> ${selectedArchiveItem.worker} | <b>Prüfer:</b> ${selectedArchiveItem.inspector}<br>
+            <b>Datum:</b> ${selectedArchiveItem.date}<br>
+            <b>Ergebnis:</b> ${rate}% OK (${selectedArchiveItem.okCount || '-'} / ${selectedArchiveItem.totalCount || '-'} OK)
+            <div class="progress-bar-container" style="height: 6px; margin-top: 6px;">
+                <div class="progress-bar" style="width: ${rate}%; background-color: ${barColor};"></div>
+            </div>
+        `;
+
+        const resultsContainer = document.getElementById('archive-detail-results');
+        resultsContainer.innerHTML = '<h4>Prüfpunkte:</h4>';
+
+        selectedArchiveItem.results.forEach((r, idx) => {
+            const itemDiv = document.createElement('div');
+            let statusClass = r.status === 'OK' ? 'ok' : (r.status === 'KORRIGIERT' ? 'fixed' : 'nok');
+            itemDiv.className = `result-item ${statusClass}`;
+
+            let statusText = r.status;
+            if (r.status === 'KORRIGIERT') statusText = '🟢 KORRIGIERT (OK)';
+
+            itemDiv.innerHTML = `
+                <div><strong>${idx + 1}. ${getItemText(r.item)}</strong> - <span>${statusText}</span></div>
+                ${r.note ? `<small style="color: var(--primary); margin-top: 2px;">💬 ${r.note}</small>` : ''}
+                ${r.remark ? `<small style="color: var(--red); margin-top: 3px;">⚠️ ${r.remark}</small>` : ''}
+                ${r.fixNote ? `<small style="color: var(--green); margin-top: 3px;">✅ ${r.fixNote}</small>` : ''}
+                ${r.status === 'NOK' ? `<button class="btn-fix" onclick="fixItemArchive(${idx})">🛠️ Mangel beheben & freigeben</button>` : ''}
+            `;
+            resultsContainer.appendChild(itemDiv);
+        });
+
+        goToScreen('screen-archive-detail');
+    }
+
+    function printFinalInspection() {
+        appendPrintDetails('final-summary', 'worker-name', 'inspector-name', 'inspection-date');
+        window.print();
+    }
+
+    function printArchiveInspection() {
+        window.print();
+    }
+
+    function appendPrintDetails(summaryId, workerId, inspectorId, dateId) {
+        const worker = document.getElementById(workerId).value.trim() || '-';
+        const inspector = document.getElementById(inspectorId).value.trim() || '-';
+        const date = document.getElementById(dateId).value || '-';
+
+        let printDetails = document.getElementById('print-summary-extension');
+        if (!printDetails) {
+            printDetails = document.createElement('div');
+            printDetails.id = 'print-summary-extension';
+            document.getElementById(summaryId).appendChild(printDetails);
+        }
+
+        printDetails.innerHTML = `
+            <hr style="margin: 8px 0; border: 0.5px solid var(--border-color);">
+            <b>👷 Monteur:</b> ${worker}<br>
+            <b>👤 Endkontrolle / Prüfer:</b> ${inspector}<br>
+            <b>📅 Datum:</b> ${date}
+        `;
+    }
+
+    function sendMailCurrent() {
+        const worker = document.getElementById('worker-name').value.trim() || 'Unbekannt';
+        const inspector = document.getElementById('inspector-name').value.trim() || 'Unbekannt';
+        const date = document.getElementById('inspection-date').value;
+
+        generateAndSendMail(currentOrder, inspectionResults, worker, inspector, date);
+    }
+
+    function sendMailArchive() {
+        if (!selectedArchiveItem) return;
+        generateAndSendMail(
+            selectedArchiveItem, 
+            selectedArchiveItem.results, 
+            selectedArchiveItem.worker, 
+            selectedArchiveItem.inspector, 
+            selectedArchiveItem.date
+        );
+    }
+
+    function generateAndSendMail(order, results, worker, inspector, date) {
+        const rate = order.successRate !== undefined ? order.successRate : (order.status === 'FREIGEGEBEN' ? 100 : 0);
+        const subject = encodeURIComponent(`Prüfprotokoll Nr: ${order.orderNo} (${rate}% OK): ${order.type} - SN: ${order.serial}`);
+        
+        let body = `PRÜFPROTOKOLL MASCHINENPRÜFUNG\n-----------------------------------\n`;
+        if (order.customer && order.customer !== '-') body += `Kunde: ${order.customer}\n`;
+        body += `Auftrags-Nr: ${order.orderNo}\n`;
+        body += `Typ: ${order.type}\nSeriennummer: ${order.serial}\n`;
+        body += `Rohrlänge: ${order.pipe}\nAchse: ${order.axis}\nMotor: ${order.kw}\n`;
+        if (order.comment) body += `Hinweis: ${order.comment}\n`;
+        body += `Monteur: ${worker}\nPrüfer: ${inspector}\nDatum: ${date}\n`;
+        body += `Ergebnis: ${order.status} (${rate}% OK)\n\nDETAILS:\n`;
+
+        results.forEach((r, i) => {
+            if (!r) return;
+            let line = `${i+1}. ${getItemText(r.item)}: ${r.status}`;
+            if (r.note) line += ` (Hinweis: ${r.note})`;
+            if (r.remark) line += ` (Mangel: ${r.remark})`;
+            if (r.fixNote) line += ` [Behebung: ${r.fixNote}]`;
+            body += line + `\n`;
+        });
+
+        window.location.href = `mailto:?subject=${subject}&body=${encodeURIComponent(body)}`;
+    }
+</script>
+</body>
+</html>
