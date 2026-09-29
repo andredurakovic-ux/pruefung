@@ -7,6 +7,8 @@
     <title>Digitale Maschinenprüfung - Kontrollliste</title>
     <!-- QR Scanner Bibliothek (Html5Qrcode) -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- OCR Bibliothek für Foto-Texterkennung (Tesseract.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         :root {
             --bg-color: #f4f6f8;
@@ -281,6 +283,17 @@
             border: 2px dashed var(--primary);
         }
 
+        #ocr-loading {
+            display: none;
+            text-align: center;
+            padding: 15px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
         @media print {
             body { background: white; padding: 0; }
             .app-container { box-shadow: none; border: none; max-width: 100%; width: 100%; }
@@ -329,11 +342,20 @@
     <!-- 2. AUFTRAG ANLEGEN -->
     <div id="screen-new-order" class="screen">
         <h2>ERP-Daten & Spezifikationen eingeben</h2>
-        <button class="btn btn-outline" style="padding: 8px; font-size: 0.9rem;" onclick="openScanner()">📷 QR-Code scannen</button>
         
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline" style="padding: 8px; font-size: 0.9rem; flex: 1;" onclick="openScanner()">📷 QR-Code scannen</button>
+            <label class="btn btn-outline" style="padding: 8px; font-size: 0.9rem; flex: 1; cursor: pointer; text-align: center; margin:0;">
+                📄 Foto / Zettel scannen
+                <input type="file" id="ocr-file-input" accept="image/*" capture="environment" style="display: none;" onchange="processDocumentPhoto(event)">
+            </label>
+        </div>
+
+        <div id="ocr-loading">🔍 Dokument wird gelesen... Bitte warten...</div>
+
         <div class="form-group">
             <label for="order-customer">👤 Kundenname</label>
-            <input type="text" id="order-customer" placeholder="z. B. Max Mustermann / Firma GmbH">
+            <input type="text" id="order-customer" placeholder="z. B. Senad Ahmetovic / Firma GmbH">
         </div>
         <div class="form-group">
             <label for="order-no">📌 Auftragsnummer (AU)</label>
@@ -367,7 +389,7 @@
         </div>
 
         <hr style="border: 0.5px solid var(--border-color); margin: 5px 0;">
-        
+
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <label><b>Prüfpunkte individuell auswählen:</b></label>
             <div style="display: flex; gap: 5px;">
@@ -634,6 +656,78 @@
         updateStepView();
     }
 
+    // --- FOTO OCR LOGIK (Option A) ---
+    async function processDocumentPhoto(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const loader = document.getElementById('ocr-loading');
+        loader.style.display = 'block';
+
+        try {
+            const worker = await Tesseract.createWorker('deu');
+            const ret = await worker.recognize(file);
+            await worker.terminate();
+
+            const text = ret.data.text;
+            parseDocumentText(text);
+        } catch (error) {
+            console.error("OCR Fehler:", error);
+            alert("Fehler beim Verarbeiten des Fotos. Bitte versuche es erneut oder gib die Daten manuell ein.");
+        } finally {
+            loader.style.display = 'none';
+            event.target.value = '';
+        }
+    }
+
+    function parseDocumentText(fullText) {
+        const lines = fullText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+        let customer = "";
+        let auNumber = "";
+        let machineType = "";
+        let serialNumber = "";
+
+        // 1. Suche AU-Nummer (Muster AU-XXXXX)
+        const auMatch = fullText.match(/AU\s*[-–—]?\s*([A-Z0-9]+)/i);
+        if (auMatch) {
+            auNumber = "AU-" + auMatch[1];
+        }
+
+        // 2. Suche Seriennummer (SN: XXXX)
+        const snMatch = fullText.match(/SN\s*:\s*([A-Z0-9]+)/i);
+        if (snMatch) {
+            serialNumber = snMatch[1];
+        }
+
+        // 3. Suche Geschäftspartner / Kundenname
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].toLowerCase().includes("geschäftspartner") || lines[i].toLowerCase().includes("geschaftspartner")) {
+                if (i + 1 < lines.length) {
+                    customer = lines[i + 1].replace(/Versand:.*/i, '').trim();
+                }
+                break;
+            }
+        }
+
+        // 4. Suche Maschinentyp (Spezifikationszeile z.B. SLE115-INOX/...)
+        const typeMatch = fullText.match(/([A-Z0-9]{3,}-INOX[^\s]+)/i);
+        if (typeMatch) {
+            machineType = typeMatch[1];
+        } else {
+            const sleMatch = fullText.match(/(C-SLE[^\n]+|SLE[0-9]*[^\n]*)/i);
+            if (sleMatch) machineType = sleMatch[1];
+        }
+
+        // Werte eintragen, wenn gefunden
+        if (customer) document.getElementById('order-customer').value = customer;
+        if (auNumber) document.getElementById('order-no').value = auNumber;
+        if (machineType) document.getElementById('order-type').value = machineType;
+        if (serialNumber) document.getElementById('order-serial').value = serialNumber;
+
+        alert("Dokument erfolgreich gelesen & Daten übernommen!");
+    }
+
     // --- QR SCANNER LOGIK ---
     function openScanner() {
         resetOrderForm();
@@ -880,7 +974,7 @@
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
                         <div>
                             <strong>Nr: ${o.orderNo}</strong>
-                            <button type="button" class="btn-edit-au" onclick="editAuNumber(${o.id}, '${o.orderNo}')" title="Auftragsnummer ändern">✏️</button>
+                            <button type="button" class="btn-edit-au" onclick="editAuNumber(${o.id}, '${o.orderNo}')" title="Auftragsnummer ändern">✏️️</button>
                         </div>
                         <div>${statusBadge} ${nokBadge}</div>
                     </div>
@@ -982,7 +1076,7 @@
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
                         <div>
                             <strong>Nr: ${o.orderNo}</strong>
-                            <button type="button" class="btn-edit-au" onclick="editAuNumber(${o.id}, '${o.orderNo}')" title="Auftragsnummer ändern">✏️</button>
+                            <button type="button" class="btn-edit-au" onclick="editAuNumber(${o.id}, '${o.orderNo}')" title="Auftragsnummer ändern">✏️️</button>
                         </div>
                         <div>${statusBadge} ${nokBadge}</div>
                     </div>
@@ -1216,7 +1310,7 @@
                 ${r.note ? `<small style="color: var(--primary); margin-top: 2px;">💬 ${r.note}</small>` : ''}
                 ${r.remark ? `<small style="color: var(--red); margin-top: 3px;">⚠️ ${r.remark}</small>` : ''}
                 ${r.fixNote ? `<small style="color: var(--green); margin-top: 3px;">✅ ${r.fixNote}</small>` : ''}
-                ${r.status === 'NOK' ? `<button class="btn-fix" onclick="fixItemCurrent(${idx})">🛠️ Mangel beheben & freigeben</button>` : ''}
+                ${r.status === 'NOK' ? `<button class="btn-fix" onclick="fixItemCurrent(${idx})">🛠️️ Mangel beheben & freigeben</button>` : ''}
             `;
             resultsList.appendChild(itemDiv);
         });
