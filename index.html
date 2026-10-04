@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -42,9 +41,10 @@
             padding: 15px;
         }
 
+        /* Max-Width erhöht, damit das Dashboard auf breiten Monitoren Platz für mehrere Spalten hat */
         .app-container {
             width: 100%;
-            max-width: 650px;
+            max-width: 1400px;
             background: var(--card-bg);
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -226,14 +226,23 @@
 
         .action-buttons .btn { flex: 1; padding: 18px; font-size: 1.2rem; }
 
+        /* GRID RASTER FÜR AUFTRÄGE (Nebeneinander statt Untereinander) */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 15px;
+            align-items: start;
+        }
+
         .order-card {
             border: 1px solid var(--border-color);
             padding: 15px;
             border-radius: 8px;
             display: flex;
+            flex-direction: column;
             justify-content: space-between;
-            align-items: center;
             background: #fff;
+            height: 100%;
         }
 
         .badge-status {
@@ -335,7 +344,7 @@
     <div id="screen-office-live" class="screen">
         <h2>🖥️ Büro Live-Dashboard (Echtzeit-Monitoren)</h2>
         <p style="font-size: 0.85rem; color: var(--gray);">Hier wird der Live-Fortschritt & Wartezustände der Werkstatt automatisch aktualisiert.</p>
-        <div id="office-live-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
+        <div id="office-live-list" class="grid-container" style="margin-top: 10px;"></div>
         <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;">Zurück zum Hauptmenü</button>
     </div>
 
@@ -407,7 +416,7 @@
     <!-- 3. AUFTRAGSLISTE WERKSTATT -->
     <div id="screen-orders" class="screen">
         <h2>🛠️ Offene Prüfungen (Werkstatt)</h2>
-        <div id="orders-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        <div id="orders-list" class="grid-container" style="margin-top: 10px;"></div>
         <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;">Zurück</button>
     </div>
 
@@ -493,7 +502,7 @@
             <input type="text" id="archive-search" placeholder="🔍 Suche nach Kunde, AU, SN, Prüfer..." oninput="filterArchive()">
         </div>
 
-        <div id="archive-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        <div id="archive-list" class="grid-container" style="margin-top: 10px;"></div>
         <button class="btn btn-secondary" onclick="goToScreen('screen-home')" style="margin-top: 10px;">Zurück</button>
     </div>
 
@@ -938,7 +947,7 @@
         container.innerHTML = '';
 
         if (window.orders.length === 0) {
-            container.innerHTML = `<p style="text-align:center; color: var(--gray);">Keine offenen Prüfungen vorhanden.</p>`;
+            container.innerHTML = `<p style="text-align:center; color: var(--gray); grid-column: 1/-1;">Keine offenen Prüfungen vorhanden.</p>`;
             return;
         }
 
@@ -961,20 +970,20 @@
                 statusBadge = `<span class="badge-status badge-yellow">IN BEARBEITUNG (${percent}%)</span>`;
             } else if (current >= total && total > 0) {
                 if (nokCount > 0) {
-                    statusBadge = `<span class="badge-status badge-red blink-status">⚠️ 100% ERREICHT (Mängel offen)</span>`;
+                    statusBadge = `<span class="badge-status badge-red blink-status">⚠️ 100% ERREICHT</span>`;
                 } else {
-                    statusBadge = `<span class="badge-status badge-green blink-status">✨ 100% ERREICHT (Fertig!)</span>`;
+                    statusBadge = `<span class="badge-status badge-green blink-status">✨ 100% ERREICHT</span>`;
                 }
             }
 
             let nokBadge = nokCount > 0 ? `<span class="badge-status badge-red" style="margin-left: 4px;">🔴 ${nokCount} Mangel</span>` : '';
 
             div.innerHTML = `
-                <div style="flex: 1; margin-right: 10px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                         <div>
                             <strong>Nr: ${o.orderNo}</strong>
-                            <button type="button" class="btn-edit-au" onclick="editAuNumber(${o.id}, '${o.orderNo}')" title="Auftragsnummer ändern">✏️️</button>
+                            <button type="button" class="btn-edit-au" onclick="editAuNumber(${o.id}, '${o.orderNo}')" title="Auftragsnummer ändern">✏</button>
                         </div>
                         <div>${statusBadge} ${nokBadge}</div>
                     </div>
@@ -983,7 +992,7 @@
                     <small>Rohr: ${o.pipe} | Achse: ${o.axis} | Motor: ${o.kw}</small>
                     ${o.comment ? `<br><small style="color: var(--primary); font-style: italic;">💬 ${o.comment}</small>` : ''}
                     
-                    <div style="margin-top: 8px;">
+                    <div style="margin-top: 12px;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold; color: var(--gray);">
                             <span>Live-Fortschritt:</span>
                             <span>${current} / ${total} (${successRate}% OK)</span>
@@ -993,9 +1002,10 @@
                         </div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 6px; flex-direction: column;">
-                    <button class="btn btn-green" style="width: auto; padding: 8px 12px; white-space: nowrap;" onclick="startInspection(${o.id})">${current > 0 ? 'Weiterprüfen ▶' : 'Prüfen ▶'}</button>
-                    <button class="btn btn-outline-red" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onclick="deleteOrder(${o.id})">🗑️</button>
+
+                <div style="display: flex; gap: 8px; margin-top: 15px;">
+                    <button class="btn btn-green" style="padding: 10px; font-size: 0.9rem;" onclick="startInspection(${o.id})">${current > 0 ? 'Weiterprüfen ▶' : 'Prüfen ▶'}</button>
+                    <button class="btn btn-outline-red" style="width: auto; padding: 8px 12px;" onclick="deleteOrder(${o.id})">🗑️</button>
                 </div>
             `;
             container.appendChild(div);
@@ -1007,7 +1017,7 @@
         container.innerHTML = '';
 
         if (window.orders.length === 0) {
-            container.innerHTML = `<p style="text-align:center; color: var(--gray);">Aktuell laufen keine Prüfungen in der Werkstatt.</p>`;
+            container.innerHTML = `<p style="text-align:center; color: var(--gray); grid-column: 1/-1;">Aktuell laufen keine Prüfungen in der Werkstatt.</p>`;
             return;
         }
 
@@ -1031,9 +1041,9 @@
                 statusBadge = `<span class="badge-status badge-yellow">IN BEARBEITUNG (${percent}%)</span>`;
             } else if (current >= total && total > 0) {
                 if (nokCount > 0) {
-                    statusBadge = `<span class="badge-status badge-red blink-status">⚠️ 100% ERREICHT (Mängel offen)</span>`;
+                    statusBadge = `<span class="badge-status badge-red blink-status">⚠️ 100% ERREICHT</span>`;
                 } else {
-                    statusBadge = `<span class="badge-status badge-green blink-status">✨ 100% ERREICHT (Bereit für Endkontrolle)</span>`;
+                    statusBadge = `<span class="badge-status badge-green blink-status">✨ 100% ERREICHT</span>`;
                 }
             }
 
@@ -1043,7 +1053,7 @@
             if (nokCount > 0) {
                 nokDetailsHtml = `
                     <div style="margin-top: 10px; padding: 8px 12px; background-color: #fef2f2; border-left: 4px solid var(--red); border-radius: 4px; font-size: 0.85rem;">
-                        <strong style="color: var(--red);">⚠️ Erfasste Mängel (Werkstatt):</strong>
+                        <strong style="color: var(--red);">⚠️ Erfasste Mängel:</strong>
                         <ul style="margin: 4px 0 0 18px; color: #991b1b;">
                             ${nokItems.map(item => `<li><b>${getItemText(item.item)}:</b>${item.remark}</li>`).join('')}
                         </ul>
@@ -1059,24 +1069,24 @@
                 liveStatusHtml = `
                     <div style="margin-top: 8px; padding: 8px 10px; background-color: #eff6ff; border-left: 4px solid var(--primary); border-radius: 4px; font-size: 0.85rem;">
                         <b>📍 Aktueller Prüfpunkt:</b> ${currentPointName}<br>
-                        ${o.liveNote ? `<span style="color: #1d4ed8; font-weight: bold; font-size: 0.9rem;">💬 Monteur: "${o.liveNote}"</span>` : `<span style="color: var(--gray); font-style: italic;">(Kein Live-Kommentar eingetragen)</span>`}
+                        ${o.liveNote ? `<span style="color: #1d4ed8; font-weight: bold; font-size: 0.9rem;">💬 Monteur: "${o.liveNote}"</span>` : `<span style="color: var(--gray); font-style: italic;">(Kein Live-Kommentar)</span>`}
                     </div>
                 `;
             } else {
                 liveStatusHtml = `
                     <div style="margin-top: 8px; padding: 8px 10px; background-color: #ecfdf5; border-left: 4px solid var(--green); border-radius: 4px; font-size: 0.85rem;">
-                        <b style="color: var(--green);">🎉 Alle Prüfpunkte von der Werkstatt abgehakt!</b><br>
-                        <span style="color: var(--gray);">Das Protokoll wartet jetzt auf Endkontrolle & Archivierung durch den Prüfer.</span>
+                        <b style="color: var(--green);">🎉 Alle Punkte abgehakt!</b><br>
+                        <span style="color: var(--gray);">Wartet auf Endkontrolle.</span>
                     </div>
                 `;
             }
 
             div.innerHTML = `
-                <div style="flex: 1;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
                         <div>
                             <strong>Nr: ${o.orderNo}</strong>
-                            <button type="button" class="btn-edit-au" onclick="editAuNumber(${o.id}, '${o.orderNo}')" title="Auftragsnummer ändern">✏️️</button>
+                            <button type="button" class="btn-edit-au" onclick="editAuNumber(${o.id}, '${o.orderNo}')" title="Auftragsnummer ändern">✏</button>
                         </div>
                         <div>${statusBadge} ${nokBadge}</div>
                     </div>
@@ -1085,7 +1095,7 @@
                     <small>Rohr: ${o.pipe} | Achse: ${o.axis} | Motor: ${o.kw}</small>
                     ${o.comment ? `<br><small style="color: var(--primary); font-style: italic;">💬 ${o.comment}</small>` : ''}
                     
-                    <div style="margin-top: 8px;">
+                    <div style="margin-top: 12px;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold; color: var(--gray);">
                             <span>Live-Fortschritt Werkstatt:</span>
                             <span>${current} / ${total} (${successRate}% OK)</span>
@@ -1310,7 +1320,7 @@
                 ${r.note ? `<small style="color: var(--primary); margin-top: 2px;">💬 ${r.note}</small>` : ''}
                 ${r.remark ? `<small style="color: var(--red); margin-top: 3px;">⚠️ ${r.remark}</small>` : ''}
                 ${r.fixNote ? `<small style="color: var(--green); margin-top: 3px;">✅ ${r.fixNote}</small>` : ''}
-                ${r.status === 'NOK' ? `<button class="btn-fix" onclick="fixItemCurrent(${idx})">🛠️️ Mangel beheben & freigeben</button>` : ''}
+                ${r.status === 'NOK' ? `<button class="btn-fix" onclick="fixItemCurrent(${idx})">🛠 Mangel beheben & freigeben</button>` : ''}
             `;
             resultsList.appendChild(itemDiv);
         });
@@ -1387,7 +1397,7 @@
         const dataToRender = filteredData || window.archive;
 
         if (dataToRender.length === 0) {
-            container.innerHTML = `<p style="text-align:center; color: var(--gray);">Keine passenden Protokolle gefunden.</p>`;
+            container.innerHTML = `<p style="text-align:center; color: var(--gray); grid-column: 1/-1;">Keine passenden Protokolle gefunden.</p>`;
             return;
         }
 
@@ -1403,8 +1413,8 @@
             if (rate < 80) badgeClass = 'badge-red';
 
             div.innerHTML = `
-                <div style="flex: 1; margin-right: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <strong>Nr: ${item.orderNo} - ${item.type}</strong>
                         <span class="badge-status ${badgeClass}">${rate}% OK</span>
                     </div>
@@ -1414,9 +1424,9 @@
                         <div class="progress-bar" style="width: ${rate}%; background-color: ${rate === 100 ? 'var(--green)' : (rate >= 80 ? 'var(--yellow)' : 'var(--red)')};"></div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 6px; flex-direction: column;">
-                    <button class="btn btn-outline" style="width: auto; padding: 6px 10px; white-space: nowrap;" onclick="viewArchiveDetail(${item.id})">Details 👁️</button>
-                    <button class="btn btn-outline-red" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onclick="deleteArchiveItem(${item.id})">🗑️</button>
+                <div style="display: flex; gap: 8px; margin-top: 15px;">
+                    <button class="btn btn-outline" style="padding: 8px; font-size: 0.9rem;" onclick="viewArchiveDetail(${item.id})">Details 👁️</button>
+                    <button class="btn btn-outline-red" style="width: auto; padding: 8px 12px;" onclick="deleteArchiveItem(${item.id})">🗑️</button>
                 </div>
             `;
             container.appendChild(div);
